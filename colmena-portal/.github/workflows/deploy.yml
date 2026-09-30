@@ -1,0 +1,32 @@
+name: Deploy Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths: ['colmena-portal/**']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: colmena-portal
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar clasp
+        run: npm install -g @google/clasp
+
+      - name: Credenciales clasp
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Subir código
+        run: clasp push -f
+
+      - name: Actualizar despliegue (misma URL /exec)
+        run: clasp deploy -i "${{ secrets.DEPLOYMENT_ID }}" -d "gh ${{ github.sha }}"
