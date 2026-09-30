@@ -28,5 +28,14 @@ jobs:
       - name: Subir código
         run: clasp push -f
 
+      - name: Crear nueva versión explícita
+        id: version
+        run: |
+          clasp version "gh ${{ github.sha }}"
+          clasp versions | tail -5
+
       - name: Actualizar despliegue (misma URL /exec)
         run: clasp deploy -i "${{ secrets.DEPLOYMENT_ID }}" -d "gh ${{ github.sha }}"
+
+      - name: Confirmar implementaciones activas
+        run: clasp deployments
