@@ -1,0 +1,16 @@
+{
+  "name": "apiario-portal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Portal estatico del apiario (GitHub Pages) - Tailwind CSS + Alpine.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/tailwind.css -o ./assets/styles.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4",
+    "tailwindcss": "^4"
+  },
+  "dependencies": {
+    "alpinejs": "^3"
+  }
+}

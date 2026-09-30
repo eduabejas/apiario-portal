@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal Apiario</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/js/usuarios.js"></script>
+  <script src="assets/js/portal.js"></script>
+  <script defer src="assets/alpine.min.js"></script>
+</head>
+<body>
+  <div class="honey-bg" aria-hidden="true"><span></span><span></span></div>
+
+  <main class="mx-auto max-w-2xl px-4 py-10 sm:py-16" x-data="portal">
+    <header class="mb-8 text-center sm:text-left">
+      <h1 class="text-2xl sm:text-3xl font-bold">🐝 Portal Apiario</h1>
+      <p class="mt-1 text-gris">Elegí quién sos y a qué interfaz querés entrar.</p>
+    </header>
+
+    <form @submit.prevent="entrar" class="space-y-5">
+      <section class="glass-card p-5">
+        <h2 class="mb-3 font-semibold">Usuario</h2>
+        <div class="grid gap-2.5 sm:grid-cols-2">
+          <template x-for="(datos, slug) in usuarios" :key="slug">
+            <label class="opt-card">
+              <input type="radio" name="u" :value="slug" x-model="usuario">
+              <span>
+                <span class="block font-medium" x-text="datos.nombre"></span>
+                <small class="block text-gris" x-text="datos.rol"></small>
+              </span>
+            </label>
+          </template>
+        </div>
+      </section>
+
+      <section class="glass-card p-5">
+        <h2 class="mb-3 font-semibold">Interfaz</h2>
+        <div class="grid gap-2.5">
+          <template x-for="(datos, num) in interfaces" :key="num">
+            <label class="opt-card">
+              <input type="radio" name="i" :value="num" x-model="interfaz">
+              <span>
+                <span class="block font-medium" x-text="datos.icono + ' Interfaz ' + num"></span>
+                <small class="block text-gris" x-text="datos.titulo"></small>
+              </span>
+            </label>
+          </template>
+        </div>
+      </section>
+
+      <button type="submit" class="btn-miel w-full" :disabled="!puedeEntrar">Entrar</button>
+    </form>
+  </main>
+</body>
+</html>
