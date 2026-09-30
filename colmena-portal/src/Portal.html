@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Estilos') ?>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🐝 Portal Apiario</h1>
+    <p class="sub">Elige quién eres y a qué interfaz quieres entrar.</p>
+
+    <form id="f">
+      <div class="card">
+        <label class="t">Usuario</label>
+        <div class="opts dos">
+          <? for (var k in usuarios) { ?>
+            <label class="opt">
+              <input type="radio" name="u" value="<?= k ?>">
+              <span><?= usuarios[k].nombre ?><small><?= usuarios[k].rol ?></small></span>
+            </label>
+          <? } ?>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="t">Interfaz</label>
+        <div class="opts">
+          <? for (var n in interfaces) { ?>
+            <label class="opt">
+              <input type="radio" name="i" value="<?= n ?>">
+              <span>Interfaz <?= n ?><small><?= interfaces[n].titulo ?></small></span>
+            </label>
+          <? } ?>
+        </div>
+      </div>
+
+      <button id="go" type="submit" disabled>Entrar</button>
+    </form>
+  </div>
+
+<script>
+  const BASE = <?= baseUrl ?>;
+  const f = document.getElementById('f');
+  const go = document.getElementById('go');
+  f.addEventListener('change', () => {
+    go.disabled = !(f.u.value && f.i.value);
+  });
+  f.addEventListener('submit', ev => {
+    ev.preventDefault();
+    // navegación en la ventana superior (Apps Script sirve dentro de un iframe)
+    window.top.location.href = BASE + '?u=' + f.u.value + '&i=' + f.i.value;
+  });
+</script>
+</body>
+</html>
