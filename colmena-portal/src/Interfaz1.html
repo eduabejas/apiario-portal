@@ -1,18 +1,1212 @@
-<!DOCTYPE html>
-<html>
-<head><base target="_top"><?!= include('Estilos') ?></head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <a class="volver" href="<?= baseUrl ?>">← Portal</a>
-      <span class="chip">👤 <?= usuario.nombre ?></span>
+<base target="_top">
+<title>Relieve del Apiario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /*
+    Layout: pantalla completa dividida en lienzo 3D (fondo) + panel de control
+    flotante (izq, colapsable en mobile) + leyenda de elevacion (der) + barra
+    inferior con datos del punto bajo el cursor. Vocabulario visual: instrumento
+    de campo/agrimensura -- superficies oscuras tipo "estacion total", acentos
+    ambar (advertencia de crecida) y verde topografico.
+  */
+  :root {
+    --bg: #14181a;
+    --panel-bg: #1c2226;
+    --panel-border: #2e3639;
+    --fg: #e8ece9;
+    --fg-muted: #9aa5a2;
+    --accent: #d68a2e;
+    --accent-2: #4a9c6d;
+    --danger: #c9503f;
+    --font-display: 'Space Mono', 'Courier New', monospace;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #14181a;
+      --panel-bg: #1c2226;
+      --panel-border: #2e3639;
+      --fg: #e8ece9;
+      --fg-muted: #9aa5a2;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #14181a;
+    --panel-bg: #1c2226;
+    --panel-border: #2e3639;
+    --fg: #e8ece9;
+    --fg-muted: #9aa5a2;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 14px;
+  }
+
+  #canvas-wrap { position: absolute; inset: 0; }
+  #canvas-wrap canvas { display: block; touch-action: none; width: 100% !important; height: 100% !important; }
+
+  .hud {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .hud > * { pointer-events: auto; }
+
+  #top-bar {
+    top: max(12px, env(safe-area-inset-top, 0px));
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  #title-block {
+    background: color-mix(in srgb, var(--panel-bg) 90%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    backdrop-filter: blur(6px);
+    max-width: 340px;
+  }
+  #title-block h1 {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 2px;
+    color: var(--accent);
+  }
+  #title-block p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--fg-muted);
+    line-height: 1.4;
+  }
+
+  #controls-panel {
+    background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    backdrop-filter: blur(6px);
+    width: 220px;
+    max-width: 46vw;
+  }
+  #controls-panel h2 {
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    color: var(--fg-muted);
+  }
+  .ctrl-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px 8px;
+    margin-bottom: 10px;
+  }
+  .ctrl-row:last-child { margin-bottom: 0; }
+  .ctrl-row label {
+    font-size: 11.5px;
+    color: var(--fg);
+    white-space: nowrap;
+    flex: 1 1 auto;
+  }
+  .ctrl-row input[type="range"] {
+    width: 100%;
+    flex: 1 1 100%;
+    accent-color: var(--accent);
+  }
+  .ctrl-row .val {
+    font-family: var(--font-display);
+    font-size: 10.5px;
+    color: var(--fg-muted);
+    min-width: 32px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+  .toggle-btn {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--fg);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .toggle-btn:hover { border-color: var(--accent); }
+  .toggle-btn.active {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  #legend {
+    position: absolute;
+    right: 12px;
+    bottom: max(70px, calc(70px + env(safe-area-inset-bottom, 0px)));
+    background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+  #legend h2 {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    color: var(--fg-muted);
+  }
+  #legend-gradient {
+    width: 18px;
+    height: 120px;
+    border-radius: 3px;
+    background: linear-gradient(to top, #c9503f 0%, #d68a2e 25%, #e8d26a 50%, #7fae5c 75%, #2f7a45 100%);
+    display: inline-block;
+    margin-right: 8px;
+    border: 1px solid var(--panel-border);
+  }
+  #legend-body { display: flex; }
+  #legend-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: var(--font-display);
+    font-size: 10px;
+    color: var(--fg-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  #bottom-bar {
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #status-readout {
+    background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    backdrop-filter: blur(6px);
+    font-family: var(--font-display);
+    font-size: 11px;
+    color: var(--fg);
+    display: flex;
+    gap: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  #status-readout .lbl { color: var(--fg-muted); margin-right: 4px; }
+  #status-readout .low { color: var(--danger); }
+  #status-readout .high { color: var(--accent-2); }
+
+  #hint {
+    background: color-mix(in srgb, var(--panel-bg) 80%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10.5px;
+    color: var(--fg-muted);
+    backdrop-filter: blur(6px);
+  }
+
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    z-index: 20;
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--fg-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    #title-block { max-width: 60vw; padding: 8px 10px; }
+    #title-block p { display: none; }
+    #controls-panel { width: 170px; padding: 10px; }
+    #legend { padding: 8px 10px; }
+    #legend-gradient { height: 90px; }
+    #status-readout { flex-wrap: wrap; gap: 8px 14px; font-size: 10px; }
+    #hint { display: none; }
+  }
+
+  /* --- Sistema de pestañas: barra de ancho completo, altura fija reservada --- */
+  :root { --tabbar-h: 46px; }
+  #view-switch {
+    position: absolute;
+    z-index: 30;
+    top: 0; left: 0; right: 0;
+    height: calc(var(--tabbar-h) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: color-mix(in srgb, var(--panel-bg) 96%, transparent);
+    border-bottom: 1px solid var(--panel-border);
+    backdrop-filter: blur(6px);
+  }
+  #portal-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  #portal-link a.volver {
+    color: var(--fg-muted);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 7px 10px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  #portal-link a.volver:hover {
+    background: color-mix(in srgb, var(--fg) 10%, transparent);
+    color: var(--fg);
+  }
+  #portal-link .chip {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 99px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-family: var(--font-body);
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+  #view-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
+  }
+  #view-switch-spacer {
+    flex: 0 0 auto;
+    width: 1px;
+  }
+  @media (max-width: 640px) {
+    #portal-link .chip { display: none; }
+    #portal-link a.volver { padding: 6px 8px; font-size: 11px; }
+  }
+  #view-switch button {
+    background: transparent;
+    border: none;
+    color: var(--fg-muted);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  #view-switch button.active {
+    background: var(--accent);
+    color: #1a1408;
+  }
+  .view-pane {
+    position: absolute;
+    top: calc(var(--tabbar-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0; bottom: 0;
+  }
+  .view-pane[hidden] { display: none !important; }
+
+  /* --- Vista satelital --- */
+  #sat-wrap {
+    position: absolute; inset: 0; overflow: hidden; background: #0c0e0a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #sat-stage {
+    position: relative;
+    touch-action: none;
+    cursor: grab;
+  }
+  #sat-stage:active { cursor: grabbing; }
+  #sat-img, #sat-overlay-canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  #sat-legend-note {
+    font-size: 10px;
+    color: var(--fg-muted);
+    margin-top: 6px;
+    line-height: 1.35;
+  }
+  #sat-zoom-hint {
+    position: absolute;
+    left: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--panel-bg) 80%, transparent);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 10.5px;
+    color: var(--fg-muted);
+    backdrop-filter: blur(6px);
+    z-index: 10;
+  }
+  @media (max-width: 640px) {
+    #view-switch button { padding: 6px 10px; font-size: 11px; }
+    #sat-zoom-hint { display: none; }
+  }
+</style>
+
+<div id="loading">Cargando relieve…</div>
+
+<div id="view-switch">
+  <div id="portal-link">
+    <a class="volver" href="<?= baseUrl ?>">← Portal</a>
+    <span class="chip">👤 <?= usuario.nombre ?></span>
+  </div>
+  <div id="view-tabs">
+    <button class="active" id="tab-btn-3d">Terreno 3D</button>
+    <button id="tab-btn-sat">Vista satelital</button>
+  </div>
+  <div id="view-switch-spacer"></div>
+</div>
+
+<div class="view-pane" id="pane-3d">
+  <div id="canvas-wrap"></div>
+
+  <div class="hud" id="top-bar">
+    <div id="title-block">
+      <h1>Relieve del apiario — radio 1&nbsp;km</h1>
+      <p>Modelo de elevación Copernicus GLO-30 (~30&nbsp;m de resolución). Arrastrá para rotar, rueda/pellizco para zoom, clic derecho o dos dedos para desplazar.</p>
     </div>
-    <h1>🛰️ Interfaz 1</h1>
-    <p class="sub"><?= iface.titulo ?></p>
-    <div class="placeholder">
-      Próximo módulo: mapa 2D (Leaflet) + vista 3D del terreno,
-      capa de precipitaciones satelitales y simulación simple de inundación / viento.
+    <div id="controls-panel">
+      <h2>Controles</h2>
+      <div class="ctrl-row">
+        <label for="exag">Exageración vertical</label>
+        <input type="range" id="exag" min="1" max="6" step="0.5" value="2.5">
+        <span class="val" id="exag-val">2.5×</span>
+      </div>
+      <div class="ctrl-row">
+        <label for="water">Nivel de agua sim.</label>
+        <input type="range" id="water" min="0" max="10" step="0.25" value="0">
+        <span class="val" id="water-val">0.0m</span>
+      </div>
+      <div class="ctrl-row" style="margin-top:2px;">
+        <div class="btn-row">
+          <button class="toggle-btn active" id="btn-solid">Sólido</button>
+          <button class="toggle-btn" id="btn-wire">Malla</button>
+          <button class="toggle-btn" id="btn-contours">Curvas</button>
+        </div>
+      </div>
+      <div class="ctrl-row" style="margin-top:8px;">
+        <button class="toggle-btn" id="btn-reset" style="width:100%;text-align:center;">Restablecer vista</button>
+      </div>
     </div>
   </div>
-</body>
-</html>
+
+  <div class="hud" id="legend">
+    <h2>Elevación</h2>
+    <div id="legend-body">
+      <div id="legend-gradient"></div>
+      <div id="legend-labels"></div>
+    </div>
+  </div>
+
+  <div class="hud" id="bottom-bar">
+    <div id="status-readout">
+      <span><span class="lbl">MÍN</span><span class="low" id="stat-min">—</span></span>
+      <span><span class="lbl">MED</span><span id="stat-mean">—</span></span>
+      <span><span class="lbl">MÁX</span><span class="high" id="stat-max">—</span></span>
+      <span><span class="lbl">CURSOR</span><span id="stat-cursor">—</span></span>
+    </div>
+    <div id="hint">Fuente: OpenTopography · Copernicus GLO-30 · centro −34.925494, −57.742462</div>
+  </div>
+</div>
+
+<div class="view-pane" id="pane-sat" hidden>
+  <div id="sat-wrap">
+    <div id="sat-stage">
+      <img id="sat-img" alt="Imagen satelital del área" draggable="false">
+      <canvas id="sat-overlay-canvas"></canvas>
+    </div>
+  </div>
+
+  <div class="hud" id="sat-top-bar" style="position:absolute; top:max(12px, env(safe-area-inset-top,0px)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; z-index:10;">
+    <div id="sat-title-block" style="background:color-mix(in srgb, var(--panel-bg) 90%, transparent); border:1px solid var(--panel-border); border-radius:6px; padding:10px 14px; backdrop-filter:blur(6px); max-width:320px;">
+      <h1 style="font-family:var(--font-display); font-size:13px; letter-spacing:0.04em; text-transform:uppercase; margin:0 0 2px; color:var(--accent);">Vista satelital + crecida</h1>
+      <p style="margin:0; font-size:11.5px; color:var(--fg-muted); line-height:1.4;">Imagen real (Esri World Imagery) con capa de riesgo de inundación superpuesta. Subí el nivel de agua para simular una crecida.</p>
+    </div>
+    <div id="sat-controls-panel" style="background:color-mix(in srgb, var(--panel-bg) 92%, transparent); border:1px solid var(--panel-border); border-radius:6px; padding:12px 14px; backdrop-filter:blur(6px); width:230px; max-width:46vw;">
+      <h2 style="font-family:var(--font-display); font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 10px; color:var(--fg-muted);">Simulador de crecida</h2>
+      <div class="ctrl-row">
+        <label for="sat-water">Nivel de agua</label>
+        <input type="range" id="sat-water" min="0" max="12" step="0.25" value="0">
+        <span class="val" id="sat-water-val">0.0m</span>
+      </div>
+      <div class="ctrl-row">
+        <label for="sat-opacity">Opacidad capa</label>
+        <input type="range" id="sat-opacity" min="0" max="100" step="5" value="55">
+        <span class="val" id="sat-opacity-val">55%</span>
+      </div>
+      <div class="ctrl-row" style="margin-top:2px;">
+        <div class="btn-row">
+          <button class="toggle-btn active" id="btn-sat-flood">Inundación</button>
+          <button class="toggle-btn" id="btn-sat-elev">Elevación</button>
+          <button class="toggle-btn" id="btn-sat-off">Sin capa</button>
+        </div>
+      </div>
+      <div id="sat-legend-note">Rojo = quedaría bajo agua a este nivel · Ámbar = margen de seguridad menor a 1&nbsp;m · Verde = fuera de riesgo</div>
+    </div>
+  </div>
+
+  <div class="hud" id="sat-bottom-bar" style="position:absolute; bottom:max(12px, env(safe-area-inset-bottom,0px)); left:12px; right:12px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; z-index:10;">
+    <div id="sat-status-readout" style="background:color-mix(in srgb, var(--panel-bg) 92%, transparent); border:1px solid var(--panel-border); border-radius:6px; padding:7px 12px; backdrop-filter:blur(6px); font-family:var(--font-display); font-size:11px; color:var(--fg); display:flex; gap:16px; font-variant-numeric:tabular-nums;">
+      <span><span class="lbl">ÁREA INUNDADA</span> <span id="sat-stat-flooded">—</span></span>
+      <span><span class="lbl">PTO. REFERENCIA</span> <span id="sat-stat-ref">—</span></span>
+    </div>
+    <div id="sat-zoom-hint">Arrastrá para mover el encuadre · Fuente: Esri World Imagery, escala aprox. 1:2500</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<?!= include('DatosTerreno') ?>
+<?!= include('DatosOverlay') ?>
+<?!= include('DatosSatelital') ?>
+<script>
+(function () {
+  "use strict";
+
+  // Imagen satelital embebida en base64 (ver DatosSatelital.html)
+  var satImgEl = document.getElementById('sat-img');
+  if (satImgEl && typeof SATELITAL_BASE64 !== 'undefined') {
+    satImgEl.src = 'data:image/jpeg;base64,' + SATELITAL_BASE64;
+  }
+
+  // --- Cambio de pestañas ---
+  var tabBtn3d = document.getElementById('tab-btn-3d');
+  var tabBtnSat = document.getElementById('tab-btn-sat');
+  var pane3d = document.getElementById('pane-3d');
+  var paneSat = document.getElementById('pane-sat');
+  var satInitialized = false;
+  var force3dResize = null; // asignada dentro de init() una vez creado el renderer
+
+  tabBtn3d.addEventListener('click', function () {
+    tabBtn3d.classList.add('active');
+    tabBtnSat.classList.remove('active');
+    pane3d.hidden = false;
+    paneSat.hidden = true;
+    if (force3dResize) {
+      requestAnimationFrame(force3dResize);
+    }
+  });
+  tabBtnSat.addEventListener('click', function () {
+    tabBtnSat.classList.add('active');
+    tabBtn3d.classList.remove('active');
+    paneSat.hidden = false;
+    pane3d.hidden = true;
+    if (!satInitialized) {
+      satInitialized = true;
+      initSatView();
+    } else {
+      requestAnimationFrame(function () {
+        layoutSatStage();
+        requestAnimationFrame(layoutSatStage);
+      });
+    }
+  });
+
+  try {
+    init(TERRENO_3D_DATA);
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Error cargando datos del terreno.';
+    console.error(err);
+  }
+
+  function init(data) {
+    var loading = document.getElementById('loading');
+    var meta = data.meta;
+    var nGrid = meta.n_grid;
+    var stats = meta.stats;
+    var elevMin = stats.min, elevMax = stats.max;
+
+    document.getElementById('stat-min').textContent = elevMin.toFixed(1) + 'm';
+    document.getElementById('stat-mean').textContent = stats.media.toFixed(1) + 'm';
+    document.getElementById('stat-max').textContent = elevMax.toFixed(1) + 'm';
+
+    // Leyenda con 5 marcas
+    var legendLabels = document.getElementById('legend-labels');
+    var steps = 5;
+    for (var s = steps - 1; s >= 0; s--) {
+      var v = elevMin + (elevMax - elevMin) * (s / (steps - 1));
+      var d = document.createElement('div');
+      d.textContent = v.toFixed(1);
+      legendLabels.appendChild(d);
+    }
+
+    // --- color por elevacion: rojo(bajo) -> ambar -> amarillo -> verde claro -> verde(alto) ---
+    var stops = [
+      { t: 0.00, c: [0xc9, 0x50, 0x3f] },
+      { t: 0.25, c: [0xd6, 0x8a, 0x2e] },
+      { t: 0.50, c: [0xe8, 0xd2, 0x6a] },
+      { t: 0.75, c: [0x7f, 0xae, 0x5c] },
+      { t: 1.00, c: [0x2f, 0x7a, 0x45] },
+    ];
+    function colorForT(t) {
+      t = Math.max(0, Math.min(1, t));
+      for (var i = 0; i < stops.length - 1; i++) {
+        var a = stops[i], b = stops[i + 1];
+        if (t >= a.t && t <= b.t) {
+          var localT = (t - a.t) / (b.t - a.t || 1);
+          var r = a.c[0] + (b.c[0] - a.c[0]) * localT;
+          var g = a.c[1] + (b.c[1] - a.c[1]) * localT;
+          var bl = a.c[2] + (b.c[2] - a.c[2]) * localT;
+          return [r / 255, g / 255, bl / 255];
+        }
+      }
+      return [stops[stops.length - 1].c[0] / 255, stops[stops.length - 1].c[1] / 255, stops[stops.length - 1].c[2] / 255];
+    }
+
+    // --- Three.js setup ---
+    var wrap = document.getElementById('canvas-wrap');
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x14181a);
+    scene.fog = new THREE.Fog(0x14181a, 1200, 3200);
+
+    var camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 1, 8000);
+    var initialCamPos = new THREE.Vector3(0, 1900, 1450);
+    camera.position.copy(initialCamPos);
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    wrap.appendChild(renderer.domElement);
+
+    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 150;
+    controls.maxDistance = 3500;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.target.set(0, 0, 0);
+
+    // Luces
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    var sun = new THREE.DirectionalLight(0xfff2dd, 1.05);
+    sun.position.set(600, 900, 400);
+    scene.add(sun);
+    var fill = new THREE.DirectionalLight(0x8fb3c9, 0.35);
+    fill.position.set(-500, 300, -600);
+    scene.add(fill);
+
+    var EXAG_BASE = 1;
+    var exagFactor = 2.5;
+
+    // --- Geometria del terreno ---
+    // Construida a mano (no PlaneGeometry rotado) para controlar explicitamente
+    // x/y/z de cada vertice: x = x_m (este), y = elevacion*exageracion (arriba),
+    // z = y_m (norte). Evita cualquier ambiguedad de orientacion por rotacion.
+    var geometry = new THREE.BufferGeometry();
+    var vertCount = nGrid * nGrid;
+    var positions = new Float32Array(vertCount * 3);
+    var colors = new Float32Array(vertCount * 3);
+    var elevFlat = new Float32Array(vertCount);
+    var inRadius = new Uint8Array(vertCount);
+
+    for (var row = 0; row < nGrid; row++) {
+      for (var col = 0; col < nGrid; col++) {
+        var elev = data.elevacion[row][col];
+        var dentro = data.dentro_radio[row][col];
+        var vIdx = row * nGrid + col;
+
+        positions[vIdx * 3] = data.x_m[row][col];
+        positions[vIdx * 3 + 1] = elev * exagFactor;
+        positions[vIdx * 3 + 2] = data.y_m[row][col];
+
+        elevFlat[vIdx] = elev;
+        inRadius[vIdx] = dentro ? 1 : 0;
+
+        var t = (elev - elevMin) / (elevMax - elevMin || 1);
+        var rgb = colorForT(t);
+        var alphaFade = dentro ? 1.0 : 0.35;
+        colors[vIdx * 3] = rgb[0] * alphaFade + 0.08 * (1 - alphaFade);
+        colors[vIdx * 3 + 1] = rgb[1] * alphaFade + 0.09 * (1 - alphaFade);
+        colors[vIdx * 3 + 2] = rgb[2] * alphaFade + 0.1 * (1 - alphaFade);
+      }
+    }
+
+    // Indices de triangulos (2 por celda de la grilla)
+    var indices = [];
+    for (var r0 = 0; r0 < nGrid - 1; r0++) {
+      for (var c0 = 0; c0 < nGrid - 1; c0++) {
+        var a = r0 * nGrid + c0;
+        var b = r0 * nGrid + c0 + 1;
+        var c = (r0 + 1) * nGrid + c0;
+        var dd = (r0 + 1) * nGrid + c0 + 1;
+        indices.push(a, c, b);
+        indices.push(b, c, dd);
+      }
+    }
+
+    geometry.setIndex(indices);
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    var posAttr = geometry.attributes.position;
+    geometry.computeVertexNormals();
+
+    var material = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.85,
+      metalness: 0.05,
+      flatShading: false,
+      side: THREE.DoubleSide,
+    });
+    var terrainMesh = new THREE.Mesh(geometry, material);
+    terrainMesh.castShadow = false;
+    scene.add(terrainMesh);
+
+    var wireMaterial = new THREE.MeshBasicMaterial({ color: 0xe8ece9, wireframe: true, transparent: true, opacity: 0.18 });
+    var wireMesh = new THREE.Mesh(geometry, wireMaterial);
+    wireMesh.visible = false;
+    scene.add(wireMesh);
+
+    // --- Curvas de nivel (lineas cada 2m) ---
+    var contourGroup = new THREE.Group();
+    contourGroup.visible = false;
+    (function buildContours() {
+      var interval = 2;
+      var levelStart = Math.ceil(elevMin / interval) * interval;
+      for (var level = levelStart; level <= elevMax; level += interval) {
+        var pts = [];
+        for (var row = 0; row < nGrid - 1; row++) {
+          for (var col = 0; col < nGrid - 1; col++) {
+            segmentAt(row, col, level, pts);
+          }
+        }
+        if (pts.length > 0) {
+          var geo = new THREE.BufferGeometry().setFromPoints(pts);
+          var isMajor = (level % 10 === 0);
+          var mat = new THREE.LineBasicMaterial({
+            color: isMajor ? 0xffffff : 0x9aa5a2,
+            transparent: true,
+            opacity: isMajor ? 0.55 : 0.28,
+          });
+          var lines = new THREE.LineSegments(geo, mat);
+          contourGroup.add(lines);
+        }
+      }
+    })();
+
+    function elevAt(row, col) {
+      return data.elevacion[row][col];
+    }
+    function xzAt(row, col) {
+      var x = data.x_m[row][col];
+      var z = data.y_m[row][col];
+      var y = elevAt(row, col) * exagFactor;
+      return new THREE.Vector3(x, y, z);
+    }
+    function segmentAt(row, col, level, out) {
+      // Marching-squares muy simplificado: revisa las 4 aristas de la celda
+      var corners = [
+        { r: row, c: col }, { r: row, c: col + 1 },
+        { r: row + 1, c: col + 1 }, { r: row + 1, c: col }
+      ];
+      var vals = corners.map(function (p) { return elevAt(p.r, p.c); });
+      var crossings = [];
+      for (var i = 0; i < 4; i++) {
+        var a = corners[i], b = corners[(i + 1) % 4];
+        var va = vals[i], vb = vals[(i + 1) % 4];
+        if ((va - level) * (vb - level) < 0) {
+          var t = (level - va) / (vb - va);
+          var pa = xzAt(a.r, a.c), pb = xzAt(b.r, b.c);
+          crossings.push(new THREE.Vector3().lerpVectors(pa, pb, t));
+        }
+      }
+      if (crossings.length === 2) {
+        out.push(crossings[0], crossings[1]);
+      }
+    }
+    scene.add(contourGroup);
+
+    // --- Marcador: punto de referencia (centro) ---
+    function addMarker(colorHex, heightM, label) {
+      var group = new THREE.Group();
+      var poleGeo = new THREE.CylinderGeometry(2.2, 2.2, 90, 8);
+      var poleMat = new THREE.MeshBasicMaterial({ color: colorHex });
+      var pole = new THREE.Mesh(poleGeo, poleMat);
+      pole.position.y = heightM + 45;
+      group.add(pole);
+      var tipGeo = new THREE.ConeGeometry(9, 26, 12);
+      var tip = new THREE.Mesh(tipGeo, poleMat);
+      tip.position.y = heightM + 90 + 13;
+      group.add(tip);
+      return group;
+    }
+    var refMarker = addMarker(0xe8ece9, elevAt(Math.floor(nGrid/2), Math.floor(nGrid/2)) * exagFactor, 'Referencia');
+    refMarker.position.set(0, 0, 0);
+    scene.add(refMarker);
+
+    // --- Punto mas alto dentro del radio ---
+    var maxIdx = { row: 0, col: 0, val: -Infinity };
+    for (var r2 = 0; r2 < nGrid; r2++) {
+      for (var c2 = 0; c2 < nGrid; c2++) {
+        if (data.dentro_radio[r2][c2] && data.elevacion[r2][c2] > maxIdx.val) {
+          maxIdx = { row: r2, col: c2, val: data.elevacion[r2][c2] };
+        }
+      }
+    }
+    var highMarker = addMarker(0x2f7a45, maxIdx.val * exagFactor, 'Más alto');
+    highMarker.position.set(data.x_m[maxIdx.row][maxIdx.col], 0, data.y_m[maxIdx.row][maxIdx.col]);
+    scene.add(highMarker);
+
+    // --- Plano de agua simulado ---
+    var waterGeo = new THREE.CircleGeometry(1050, 64);
+    waterGeo.rotateX(-Math.PI / 2);
+    var waterMat = new THREE.MeshStandardMaterial({
+      color: 0x2e6f8e, transparent: true, opacity: 0.55, roughness: 0.15, metalness: 0.1,
+    });
+    var waterMesh = new THREE.Mesh(waterGeo, waterMat);
+    waterMesh.position.y = -9999; // oculto hasta que el usuario suba el nivel
+    scene.add(waterMesh);
+
+    // --- Circulo de radio 1km ---
+    var circlePts = [];
+    for (var a = 0; a <= 64; a++) {
+      var ang = (a / 64) * Math.PI * 2;
+      circlePts.push(new THREE.Vector3(Math.cos(ang) * 1000, 1, Math.sin(ang) * 1000));
+    }
+    var circleGeo = new THREE.BufferGeometry().setFromPoints(circlePts);
+    var circleMat = new THREE.LineDashedMaterial({ color: 0x9aa5a2, dashSize: 20, gapSize: 12, transparent: true, opacity: 0.6 });
+    var circleLine = new THREE.Line(circleGeo, circleMat);
+    circleLine.computeLineDistances();
+    scene.add(circleLine);
+
+    // --- Raycasting para lectura de elevacion bajo el cursor ---
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2(-10, -10);
+    var statCursor = document.getElementById('stat-cursor');
+
+    function updatePointer(clientX, clientY) {
+      var rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    }
+    renderer.domElement.addEventListener('pointermove', function (e) {
+      updatePointer(e.clientX, e.clientY);
+    });
+
+    // --- Controles UI ---
+    function applyExag(newExag) {
+      exagFactor = newExag;
+      for (var row2 = 0; row2 < nGrid; row2++) {
+        for (var col2 = 0; col2 < nGrid; col2++) {
+          var vIdx2 = row2 * nGrid + col2;
+          posAttr.setY(vIdx2, elevFlat[vIdx2] * exagFactor);
+        }
+      }
+      posAttr.needsUpdate = true;
+      geometry.computeVertexNormals();
+      refMarker.position.y = 0;
+      refMarker.children[0].position.y = elevAt(Math.floor(nGrid/2), Math.floor(nGrid/2)) * exagFactor + 45;
+      refMarker.children[1].position.y = elevAt(Math.floor(nGrid/2), Math.floor(nGrid/2)) * exagFactor + 90 + 13;
+      highMarker.children[0].position.y = maxIdx.val * exagFactor + 45;
+      highMarker.children[1].position.y = maxIdx.val * exagFactor + 90 + 13;
+      rebuildContours();
+    }
+
+    function rebuildContours() {
+      contourGroup.clear();
+      var interval = 2;
+      var levelStart = Math.ceil(elevMin / interval) * interval;
+      for (var level = levelStart; level <= elevMax; level += interval) {
+        var pts = [];
+        for (var row3 = 0; row3 < nGrid - 1; row3++) {
+          for (var col3 = 0; col3 < nGrid - 1; col3++) {
+            segmentAt(row3, col3, level, pts);
+          }
+        }
+        if (pts.length > 0) {
+          var geo2 = new THREE.BufferGeometry().setFromPoints(pts);
+          var isMajor2 = (level % 10 === 0);
+          var mat2 = new THREE.LineBasicMaterial({
+            color: isMajor2 ? 0xffffff : 0x9aa5a2, transparent: true, opacity: isMajor2 ? 0.55 : 0.28,
+          });
+          contourGroup.add(new THREE.LineSegments(geo2, mat2));
+        }
+      }
+    }
+
+    var exagInput = document.getElementById('exag');
+    var exagVal = document.getElementById('exag-val');
+    exagInput.addEventListener('input', function () {
+      var v = parseFloat(exagInput.value);
+      exagVal.textContent = v.toFixed(1) + '×';
+      applyExag(v);
+    });
+
+    var waterInput = document.getElementById('water');
+    var waterVal = document.getElementById('water-val');
+    waterInput.addEventListener('input', function () {
+      var lvl = parseFloat(waterInput.value);
+      waterVal.textContent = lvl.toFixed(1) + 'm';
+      waterMesh.position.y = lvl <= 0 ? -9999 : lvl * exagFactor;
+    });
+
+    var btnSolid = document.getElementById('btn-solid');
+    var btnWire = document.getElementById('btn-wire');
+    var btnContours = document.getElementById('btn-contours');
+    btnSolid.addEventListener('click', function () {
+      terrainMesh.visible = !terrainMesh.visible;
+      btnSolid.classList.toggle('active', terrainMesh.visible);
+    });
+    btnWire.addEventListener('click', function () {
+      wireMesh.visible = !wireMesh.visible;
+      btnWire.classList.toggle('active', wireMesh.visible);
+    });
+    btnContours.addEventListener('click', function () {
+      contourGroup.visible = !contourGroup.visible;
+      btnContours.classList.toggle('active', contourGroup.visible);
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', function () {
+      camera.position.copy(initialCamPos);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    });
+
+    // --- Resize ---
+    window.addEventListener('resize', function () {
+      camera.aspect = wrap.clientWidth / wrap.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    });
+
+    // --- Loop ---
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      raycaster.setFromCamera(mouse, camera);
+      var hits = raycaster.intersectObject(terrainMesh);
+      if (hits.length > 0) {
+        var p = hits[0].point;
+        var elevReal = p.y / exagFactor;
+        statCursor.textContent = elevReal.toFixed(1) + 'm  (x:' + p.x.toFixed(0) + ' z:' + p.z.toFixed(0) + ')';
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    loading.style.display = 'none';
+
+    // Forzar un re-size tras asentarse el layout: el tamaño de wrap capturado
+    // al crear el renderer puede no coincidir con el tamaño final una vez que
+    // .view-pane termina de posicionarse (especialmente con el sistema de
+    // pestañas). Sin esto el canvas queda con la resolución interna vieja
+    // aunque el CSS lo estire a 100%, dando una imagen achicada o borrosa.
+    function forceResize() {
+      if (wrap.clientWidth === 0 || wrap.clientHeight === 0) return;
+      camera.aspect = wrap.clientWidth / wrap.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    }
+    force3dResize = forceResize;
+    requestAnimationFrame(function () {
+      forceResize();
+      requestAnimationFrame(forceResize);
+    });
+
+    animate();
+  }
+
+  // ===================================================================
+  // Vista satelital + simulador de crecida
+  // ===================================================================
+  var satState = {
+    data: null,
+    mode: 'flood', // 'flood' | 'elev' | 'off'
+    waterLevel: 0,
+    opacity: 0.55,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+  };
+
+  function layoutSatStage() {
+    var stage = document.getElementById('sat-stage');
+    var wrap = document.getElementById('sat-wrap');
+    if (!stage || !wrap) return;
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    var imgSize = (satState.data && satState.data.meta.img_size) || 1280;
+    // "cover": llena el encuadre por completo (puede recortar bordes); el usuario
+    // puede arrastrar para ver las zonas que quedan fuera de la vista inicial.
+    var fit = Math.max(w, h) / imgSize;
+    satState.scale = fit;
+    stage.style.width = imgSize + 'px';
+    stage.style.height = imgSize + 'px';
+    stage.style.transform = 'translate(' + satState.offsetX + 'px,' + satState.offsetY + 'px) scale(' + satState.scale + ')';
+    stage.style.transformOrigin = 'center center';
+  }
+
+  function initSatView() {
+    try {
+      satState.data = OVERLAY_DATA;
+      setupSatCanvas();
+      requestAnimationFrame(function () {
+        layoutSatStage();
+        requestAnimationFrame(layoutSatStage);
+      });
+      drawSatOverlay();
+      setupSatInteraction();
+      setupSatControls();
+    } catch (err) {
+      console.error('Error cargando overlay:', err);
+      var note = document.getElementById('sat-legend-note');
+      if (note) note.textContent = 'No se pudo cargar la capa de elevación.';
+    }
+
+    window.addEventListener('resize', function () {
+      if (!paneSatHidden()) layoutSatStage();
+    });
+  }
+
+  function paneSatHidden() {
+    return document.getElementById('pane-sat').hidden;
+  }
+
+  function setupSatCanvas() {
+    var canvas = document.getElementById('sat-overlay-canvas');
+    var imgSize = satState.data.meta.img_size;
+    canvas.width = imgSize;
+    canvas.height = imgSize;
+  }
+
+  // Color por modo: 'flood' -> rojo si queda bajo el nivel de agua simulado,
+  // ambar si el margen de seguridad es < 1m, transparente si esta a salvo.
+  // 'elev' -> gradiente continuo rojo->verde igual que el mapa 3D.
+  var elevStops = [
+    { t: 0.00, c: [0xc9, 0x50, 0x3f] },
+    { t: 0.25, c: [0xd6, 0x8a, 0x2e] },
+    { t: 0.50, c: [0xe8, 0xd2, 0x6a] },
+    { t: 0.75, c: [0x7f, 0xae, 0x5c] },
+    { t: 1.00, c: [0x2f, 0x7a, 0x45] },
+  ];
+  function elevColor(t) {
+    t = Math.max(0, Math.min(1, t));
+    for (var i = 0; i < elevStops.length - 1; i++) {
+      var a = elevStops[i], b = elevStops[i + 1];
+      if (t >= a.t && t <= b.t) {
+        var lt = (t - a.t) / (b.t - a.t || 1);
+        return [
+          Math.round(a.c[0] + (b.c[0] - a.c[0]) * lt),
+          Math.round(a.c[1] + (b.c[1] - a.c[1]) * lt),
+          Math.round(a.c[2] + (b.c[2] - a.c[2]) * lt),
+        ];
+      }
+    }
+    var last = elevStops[elevStops.length - 1].c;
+    return [last[0], last[1], last[2]];
+  }
+
+  function drawSatOverlay() {
+    var data = satState.data;
+    if (!data) return;
+    var canvas = document.getElementById('sat-overlay-canvas');
+    var ctx = canvas.getContext('2d');
+    var gridN = data.meta.grid_n;
+    var imgSize = data.meta.img_size;
+    var cell = imgSize / gridN;
+    var elev = data.elevacion;
+    var stats = data.meta.stats;
+
+    ctx.clearRect(0, 0, imgSize, imgSize);
+    if (satState.mode === 'off') {
+      updateSatStats();
+      return;
+    }
+
+    var opacity = satState.opacity;
+    var waterLevel = satState.waterLevel;
+
+    for (var row = 0; row < gridN; row++) {
+      for (var col = 0; col < gridN; col++) {
+        var e = elev[row][col];
+        var r, g, b, a;
+        if (satState.mode === 'flood') {
+          var margin = e - waterLevel;
+          if (margin <= 0) {
+            r = 0xc9; g = 0x50; b = 0x3f; a = opacity;
+          } else if (margin <= 1.0) {
+            r = 0xd6; g = 0x8a; b = 0x2e; a = opacity * 0.8;
+          } else {
+            a = 0; r = g = b = 0;
+          }
+        } else {
+          var t = (e - stats.min) / ((stats.max - stats.min) || 1);
+          var rgb = elevColor(t);
+          r = rgb[0]; g = rgb[1]; b = rgb[2]; a = opacity;
+        }
+        if (a > 0) {
+          ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + a.toFixed(3) + ')';
+          ctx.fillRect(col * cell, row * cell, cell + 1, cell + 1);
+        }
+      }
+    }
+
+    updateSatStats();
+  }
+
+  function updateSatStats() {
+    var data = satState.data;
+    if (!data) return;
+    var gridN = data.meta.grid_n;
+    var elev = data.elevacion;
+
+    if (satState.mode === 'flood') {
+      var floodedCount = 0, total = 0;
+      for (var row = 0; row < gridN; row++) {
+        for (var col = 0; col < gridN; col++) {
+          total++;
+          if (elev[row][col] <= satState.waterLevel) floodedCount++;
+        }
+      }
+      var pct = total > 0 ? (floodedCount / total * 100) : 0;
+      document.getElementById('sat-stat-flooded').textContent = pct.toFixed(0) + '% del encuadre';
+    } else {
+      document.getElementById('sat-stat-flooded').textContent = '—';
+    }
+
+    // Elevacion en el punto de referencia (centro exacto de la imagen, ya que
+    // el mosaico fue centrado en la coordenada provista)
+    var refRow = Math.round((data.meta.lat_centro - data.meta.lat_norte) / (data.meta.lat_sur - data.meta.lat_norte) * (gridN - 1));
+    var refCol = Math.round((data.meta.lon_centro - data.meta.lon_oeste) / (data.meta.lon_este - data.meta.lon_oeste) * (gridN - 1));
+    refRow = Math.max(0, Math.min(gridN - 1, refRow));
+    refCol = Math.max(0, Math.min(gridN - 1, refCol));
+    var refElev = elev[refRow][refCol];
+    var refMargin = refElev - satState.waterLevel;
+    var refText = refElev.toFixed(1) + 'm';
+    if (satState.mode === 'flood') {
+      refText += refMargin <= 0 ? ' (bajo agua)' : ' (margen ' + refMargin.toFixed(1) + 'm)';
+    }
+    document.getElementById('sat-stat-ref').textContent = refText;
+  }
+
+  function setupSatInteraction() {
+    var stage = document.getElementById('sat-stage');
+    var wrap = document.getElementById('sat-wrap');
+    var dragging = false;
+    var startX, startY, startOffX, startOffY;
+
+    function pointerDown(x, y) {
+      dragging = true;
+      startX = x; startY = y;
+      startOffX = satState.offsetX; startOffY = satState.offsetY;
+    }
+    function pointerMove(x, y) {
+      if (!dragging) return;
+      satState.offsetX = startOffX + (x - startX);
+      satState.offsetY = startOffY + (y - startY);
+      layoutSatStage();
+    }
+    function pointerUp() { dragging = false; }
+
+    wrap.addEventListener('mousedown', function (e) { pointerDown(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', function (e) { pointerMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', pointerUp);
+
+    wrap.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) pointerDown(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    wrap.addEventListener('touchmove', function (e) {
+      if (e.touches.length === 1) pointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    wrap.addEventListener('touchend', pointerUp);
+
+    wrap.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var delta = e.deltaY > 0 ? 0.92 : 1.08;
+      var newScale = Math.max(0.4, Math.min(4, satState.scale * delta));
+      satState.scale = newScale;
+      var stageEl = document.getElementById('sat-stage');
+      stageEl.style.transform = 'translate(' + satState.offsetX + 'px,' + satState.offsetY + 'px) scale(' + satState.scale + ')';
+    }, { passive: false });
+  }
+
+  function setupSatControls() {
+    var waterInput = document.getElementById('sat-water');
+    var waterVal = document.getElementById('sat-water-val');
+    waterInput.addEventListener('input', function () {
+      satState.waterLevel = parseFloat(waterInput.value);
+      waterVal.textContent = satState.waterLevel.toFixed(1) + 'm';
+      drawSatOverlay();
+    });
+
+    var opacityInput = document.getElementById('sat-opacity');
+    var opacityVal = document.getElementById('sat-opacity-val');
+    opacityInput.addEventListener('input', function () {
+      satState.opacity = parseFloat(opacityInput.value) / 100;
+      opacityVal.textContent = opacityInput.value + '%';
+      drawSatOverlay();
+    });
+
+    var btnFlood = document.getElementById('btn-sat-flood');
+    var btnElev = document.getElementById('btn-sat-elev');
+    var btnOff = document.getElementById('btn-sat-off');
+    function setMode(mode) {
+      satState.mode = mode;
+      btnFlood.classList.toggle('active', mode === 'flood');
+      btnElev.classList.toggle('active', mode === 'elev');
+      btnOff.classList.toggle('active', mode === 'off');
+      var note = document.getElementById('sat-legend-note');
+      if (mode === 'flood') {
+        note.textContent = 'Rojo = quedaría bajo agua a este nivel · Ámbar = margen de seguridad menor a 1m · sin color = fuera de riesgo';
+      } else if (mode === 'elev') {
+        note.textContent = 'Rojo = elevación baja · Verde = elevación alta (misma escala que el mapa 3D)';
+      } else {
+        note.textContent = 'Capa oculta — solo imagen satelital.';
+      }
+      drawSatOverlay();
+    }
+    btnFlood.addEventListener('click', function () { setMode('flood'); });
+    btnElev.addEventListener('click', function () { setMode('elev'); });
+    btnOff.addEventListener('click', function () { setMode('off'); });
+  }
+})();
+</script>
