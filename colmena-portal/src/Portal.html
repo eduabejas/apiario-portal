@@ -60,7 +60,7 @@
                   class="flex flex-col items-center gap-2 rounded-lg border px-4 py-4 text-sm font-medium text-gray-700 transition-colors dark:text-white/90"
                 >
                   <span class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
-                    <?= usuarios[k].nombre.split(' ').map(function(p){ return p[0]; }).join('').substring(0,2).toUpperCase() ?>
+                    <?= usuarios[k].iniciales ?>
                   </span>
                   <span><?= usuarios[k].nombre ?></span>
                   <small class="text-[11px] font-normal text-gray-400"><?= usuarios[k].rol ?></small>
@@ -82,7 +82,7 @@
                   :class="interfaz === '<?= n ?>' ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'border-gray-300 dark:border-gray-700 hover:border-brand-300'"
                   class="flex items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors"
                 >
-                  <span class="mt-0.5 text-lg"><?= ({'1':'🛰️','2':'📊','3':'📋'})[n] || '📌' ?></span>
+                  <span class="mt-0.5 text-lg"><?= interfaces[n].icono || '📌' ?></span>
                   <span>
                     <span class="block text-sm font-semibold text-gray-800 dark:text-white/90">Interfaz <?= n ?></span>
                     <span class="block text-xs text-gray-500 dark:text-gray-400"><?= interfaces[n].titulo ?></span>

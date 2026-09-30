@@ -9,14 +9,14 @@
  */
 
 const USUARIOS = {
-  rocio:   { nombre: 'Rocío Barni',     rol: 'Administrador' },
-  eduardo: { nombre: 'Eduardo Mendoza', rol: 'Administrador' }
+  rocio:   { nombre: 'Rocío Barni',     rol: 'Administrador', iniciales: 'RB' },
+  eduardo: { nombre: 'Eduardo Mendoza', rol: 'Administrador', iniciales: 'EM' }
 };
 
 const INTERFACES = {
-  '1': { vista: 'Interfaz1', titulo: 'Satélites, precipitaciones y QGIS soft' },
-  '2': { vista: 'Interfaz2', titulo: 'Datos, precios y gráficos' },
-  '3': { vista: 'Interfaz3', titulo: 'Bitácora de colmenas' }
+  '1': { vista: 'Interfaz1', titulo: 'Satélites, precipitaciones y QGIS soft', icono: '🛰️' },
+  '2': { vista: 'Interfaz2', titulo: 'Datos, precios y gráficos', icono: '📊' },
+  '3': { vista: 'Interfaz3', titulo: 'Bitácora de colmenas', icono: '📋' }
 };
 
 function doGet(e) {
