@@ -2,140 +2,54 @@
 <html>
 <head>
   <base target="_top">
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <?!= include('EstilosPortal') ?>
+  <?!= include('Estilos') ?>
 </head>
-<body
-  x-data="{
-    loaded: true,
-    darkMode: false,
-    usuario: null,
-    interfaz: null
-  }"
-  x-init="
-    darkMode = JSON.parse(localStorage.getItem('darkMode')) ?? false;
-    $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))
-  "
-  :class="{ 'dark bg-gray-900': darkMode === true }"
->
-  <!-- ===== Preloader ===== -->
-  <div
-    x-show="loaded"
-    x-init="setTimeout(() => loaded = false, 400)"
-    class="fixed top-0 left-0 z-999999 flex h-screen w-screen items-center justify-center bg-white dark:bg-gray-900"
-  >
-    <div class="border-brand-500 h-14 w-14 animate-spin rounded-full border-4 border-solid border-t-transparent"></div>
-  </div>
+<body>
+  <div class="wrap">
+    <h1>🐝 Portal Apiario</h1>
+    <p class="sub">Elige quién eres y a qué interfaz quieres entrar.</p>
 
-  <!-- ===== Page Wrapper ===== -->
-  <div class="relative z-1 bg-white p-6 sm:p-0 dark:bg-gray-900">
-    <div class="relative flex h-screen w-full flex-col justify-center sm:p-0 lg:flex-row dark:bg-gray-900">
-
-      <!-- ===== Left: form ===== -->
-      <div class="flex w-full flex-1 flex-col lg:w-1/2">
-        <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-2 py-10">
-
-          <div class="mb-8 flex items-center gap-3">
-            <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 text-2xl">🐝</span>
-            <div>
-              <h1 class="text-title-sm font-semibold text-gray-800 dark:text-white/90">Portal Apiario</h1>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Elige quién eres y a qué interfaz quieres entrar</p>
-            </div>
-          </div>
-
-          <!-- Step 1: usuario (dinámico desde USUARIOS en Code.gs) -->
-          <div class="mb-7">
-            <label class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-400">
-              1. Usuario
+    <form id="f">
+      <div class="card">
+        <label class="t">Usuario</label>
+        <div class="opts dos">
+          <? for (var k in usuarios) { ?>
+            <label class="opt">
+              <input type="radio" name="u" value="<?= k ?>">
+              <span><?= usuarios[k].nombre ?><small><?= usuarios[k].rol ?></small></span>
             </label>
-            <div class="grid grid-cols-2 gap-3">
-              <? for (var k in usuarios) { ?>
-                <button
-                  type="button"
-                  @click="usuario = '<?= k ?>'"
-                  :class="usuario === '<?= k ?>'
-                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10'
-                    : 'border-gray-300 dark:border-gray-700 hover:border-brand-300'"
-                  class="flex flex-col items-center gap-2 rounded-lg border px-4 py-4 text-sm font-medium text-gray-700 transition-colors dark:text-white/90"
-                >
-                  <span class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
-                    <?= usuarios[k].iniciales ?>
-                  </span>
-                  <span><?= usuarios[k].nombre ?></span>
-                  <small class="text-[11px] font-normal text-gray-400"><?= usuarios[k].rol ?></small>
-                </button>
-              <? } ?>
-            </div>
-          </div>
-
-          <!-- Step 2: interfaz (dinámico desde INTERFACES en Code.gs) -->
-          <div class="mb-7">
-            <label class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-400">
-              2. Interfaz
-            </label>
-            <div class="flex flex-col gap-3">
-              <? for (var n in interfaces) { ?>
-                <button
-                  type="button"
-                  @click="interfaz = '<?= n ?>'"
-                  :class="interfaz === '<?= n ?>' ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'border-gray-300 dark:border-gray-700 hover:border-brand-300'"
-                  class="flex items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors"
-                >
-                  <span class="mt-0.5 text-lg"><?= interfaces[n].icono || '📌' ?></span>
-                  <span>
-                    <span class="block text-sm font-semibold text-gray-800 dark:text-white/90">Interfaz <?= n ?></span>
-                    <span class="block text-xs text-gray-500 dark:text-gray-400"><?= interfaces[n].titulo ?></span>
-                  </span>
-                </button>
-              <? } ?>
-            </div>
-          </div>
-
-          <!-- CTA -->
-          <button
-            type="button"
-            :disabled="!usuario || !interfaz"
-            @click="if (usuario && interfaz) { window.top.location.href = BASE_URL + '?u=' + usuario + '&i=' + interfaz }"
-            :class="(usuario && interfaz) ? 'bg-brand-500 hover:bg-brand-600 cursor-pointer' : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'"
-            class="flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-          >
-            <span x-text="(usuario && interfaz) ? 'Entrar al portal' : 'Elige usuario e interfaz para continuar'"></span>
-          </button>
-
+          <? } ?>
         </div>
       </div>
 
-      <!-- ===== Right: brand panel ===== -->
-      <div class="bg-brand-950 relative hidden h-full w-full items-center lg:grid lg:w-1/2 dark:bg-white/5">
-        <div class="absolute top-0 right-0 -z-1 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 -z-1 h-64 w-64 rounded-full bg-brand-500/10 blur-3xl"></div>
-        <div class="z-1 mx-auto flex max-w-xs flex-col items-center text-center">
-          <span class="mb-4 text-6xl">🐝</span>
-          <h2 class="mb-2 text-2xl font-semibold text-white">Apiario doble propósito</h2>
-          <p class="text-sm text-white/60">
-            Un solo portal para monitoreo satelital, datos de producción y bitácora de campo.
-          </p>
+      <div class="card">
+        <label class="t">Interfaz</label>
+        <div class="opts">
+          <? for (var n in interfaces) { ?>
+            <label class="opt">
+              <input type="radio" name="i" value="<?= n ?>">
+              <span>Interfaz <?= n ?><small><?= interfaces[n].titulo ?></small></span>
+            </label>
+          <? } ?>
         </div>
       </div>
 
-      <!-- Dark mode toggle -->
-      <div class="fixed right-6 bottom-6 z-50">
-        <button
-          class="bg-brand-500 hover:bg-brand-600 inline-flex size-12 items-center justify-center rounded-full text-white transition-colors"
-          @click="darkMode = !darkMode"
-        >
-          <span x-show="!darkMode">🌙</span>
-          <span x-show="darkMode">☀️</span>
-        </button>
-      </div>
-
-    </div>
+      <button id="go" type="submit" disabled>Entrar</button>
+    </form>
   </div>
 
-  <script>
-    const BASE_URL = "<?= baseUrl ?>";
-  </script>
-  <?!= include('AlpineJS') ?>
+<script>
+  const BASE = <?= baseUrl ?>;
+  const f = document.getElementById('f');
+  const go = document.getElementById('go');
+  f.addEventListener('change', () => {
+    go.disabled = !(f.u.value && f.i.value);
+  });
+  f.addEventListener('submit', ev => {
+    ev.preventDefault();
+    // navegación en la ventana superior (Apps Script sirve dentro de un iframe)
+    window.top.location.href = BASE + '?u=' + f.u.value + '&i=' + f.i.value;
+  });
+</script>
 </body>
 </html>
