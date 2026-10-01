@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --color-miel: #E8A317;
+  --color-miel-dark: #B87A00;
+  --color-miel-100: #FFF3D6;
+  --color-cera: #FFF8E7;
+  --color-tinta: #2B2118;
+  --color-gris: #6B5E50;
+  --color-borde: #EADBBF;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cera);
+    color: var(--color-tinta);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Fondo animado: dos manchas de color en movimiento lento, CSS puro
+     (sustituye al GIF/MP4 sugerido en PROYECTO_APIARIO.md mientras no
+     haya media propia del apiario para embeber). */
+  .honey-bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: var(--color-cera);
+  }
+  .honey-bg span {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.45;
+    animation: honey-drift 22s ease-in-out infinite;
+  }
+  .honey-bg span:nth-child(1) {
+    width: 32rem;
+    height: 32rem;
+    top: -8rem;
+    left: -6rem;
+    background: var(--color-miel);
+  }
+  .honey-bg span:nth-child(2) {
+    width: 26rem;
+    height: 26rem;
+    bottom: -10rem;
+    right: -8rem;
+    background: var(--color-miel-dark);
+    animation-delay: -11s;
+    animation-duration: 26s;
+  }
+  @keyframes honey-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(3rem, 2rem) scale(1.08); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .honey-bg span { animation: none; }
+  }
+
+  /* Frames "vidrio" flotando sobre el fondo animado */
+  .glass-card {
+    position: relative;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-borde) 90%, transparent);
+    background: color-mix(in srgb, white 68%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 12px 32px -16px color-mix(in srgb, var(--color-miel-dark) 35%, transparent);
+  }
+
+  .opt-card {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-borde);
+    background: color-mix(in srgb, white 55%, transparent);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  }
+  .opt-card:hover {
+    border-color: var(--color-miel);
+    transform: translateY(-1px);
+  }
+  .opt-card:has(input:checked) {
+    border-color: var(--color-miel);
+    background: var(--color-miel-100);
+  }
+  .opt-card input {
+    accent-color: var(--color-miel);
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .btn-miel {
+    background: var(--color-miel);
+    color: #fff;
+    border-radius: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-miel:hover:not(:disabled) { background: var(--color-miel-dark); }
+  .btn-miel:active:not(:disabled) { transform: scale(0.98); }
+  .btn-miel:disabled { opacity: 0.45; cursor: not-allowed; }
+}
