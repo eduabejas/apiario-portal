@@ -1,0 +1,12 @@
+{
+  "name": "Bitácora Apiario",
+  "short_name": "Bitácora",
+  "start_url": "interfaz3.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#E8A317",
+  "background_color": "#FFF8E7",
+  "icons": [
+    { "src": "assets/icons/bitacora.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}

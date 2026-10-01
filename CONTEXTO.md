@@ -13,7 +13,7 @@ frontend.
 - [x] `interfaz1.html` — Mapas y ambiente (terreno 3D + vista satelital,
       portado desde `colmena-portal/src/Interfaz1.html`)
 - [x] `interfaz2.html` — Datos y precios (placeholder restyleado)
-- [x] `interfaz3.html` — Bitácora de colmenas (placeholder restyleado)
+- [x] `interfaz3.html` — Bitácora de colmenas (revisión + vista QR, alpha1)
 - [x] `assets/styles.css` — Tailwind v4 compilado y purgado
 - [x] `assets/alpine.min.js` — Alpine.js v3 (build `cdn.min.js`)
 - [x] `assets/data/terreno-3d.json`, `assets/data/overlay.json` — datos
@@ -24,7 +24,8 @@ frontend.
 - [ ] Activar Pages en Settings → Pages → Source: **GitHub Actions** (paso
       manual único, no se puede hacer desde acá)
 - [ ] Interfaz 2: leer/graficar hojas de `Apiario_DB` (Chart.js)
-- [ ] Interfaz 3: formulario de revisión → endpoint `doPost` en Apps Script
+- [x] ~~Interfaz 3: formulario de revisión → endpoint `doPost` en Apps Script~~
+      (`apps-script/bitacora/Code.gs`, deploy manual — ver pasos del alpha1)
 
 ---
 
@@ -43,25 +44,37 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── interfaz1.html        # Mapas / terreno 3D / satelital + crecida
 ├── interfaz2.html        # Datos, precios, gráficos (placeholder)
 ├── interfaz3.html        # Bitácora de revisión de colmenas (placeholder)
+├── sw.js                 # Service worker de la bitácora (cache-first solo de su shell)
+├── manifest.webmanifest  # PWA de la bitácora (start_url interfaz3.html)
 ├── assets/
 │   ├── styles.css        # Tailwind v4 compilado (npm run build:css)
 │   ├── alpine.min.js     # Alpine.js v3
 │   ├── js/
-│   │   ├── usuarios.js   # Catálogo de usuarios/interfaces (antes en Code.gs)
-│   │   ├── portal.js     # Lógica del formulario del portal + marcador ?u=&i=
-│   │   └── topbar.js     # Chip de usuario en interfaz2/3
+│   │   ├── usuarios.js       # Catálogo de usuarios/interfaces (antes en Code.gs)
+│   │   ├── portal.js         # Lógica del formulario del portal + marcador ?u=&i=
+│   │   ├── topbar.js         # Chip de usuario en interfaz2/3/bitácora
+│   │   ├── bitacora-core.js  # Funciones puras de la bitácora (testeadas con node --test)
+│   │   ├── bitacora.js       # Store Alpine + outbox + fetch + animaciones GSAP
+│   │   └── bitacora-config.js# ENDPOINT y APP_VERSION de la bitácora
+│   ├── vendor/
+│   │   ├── gsap.min.js       # GSAP 3, vendorizado (npm run vendor)
+│   │   └── qrcode.js         # qrcode-generator, vendorizado (npm run vendor)
+│   ├── icons/
+│   │   └── bitacora.svg      # Ícono PWA (hexágono miel)
 │   ├── data/
 │   │   ├── terreno-3d.json
 │   │   └── overlay.json
 │   └── media/
 │       └── satelital.jpg
-├── src/tailwind.css      # Fuente del build de Tailwind (paleta miel, glass, fondo animado)
-├── package.json          # devDependencies: tailwindcss + @tailwindcss/cli, alpinejs
+├── apps-script/bitacora/Code.gs  # Backend de la bitácora (doGet/doPost), deploy manual aparte
+├── tests/bitacora-core.test.js   # node --test
+├── src/tailwind.css      # Fuente del build de Tailwind (paleta miel, tonos, glass, fondo animado)
+├── package.json          # devDependencies: tailwindcss + cli; deps: alpinejs, gsap, qrcode-generator
 ├── .nojekyll
 ├── .github/workflows/
 │   ├── deploy.yml        # Deploy Apps Script (colmena-portal/** → clasp)
-│   └── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets → Pages)
-└── colmena-portal/       # Origen Apps Script (ver colmena-portal/README.md)
+│   └── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets/sw/manifest → Pages)
+└── colmena-portal/       # Origen Apps Script del portal (ver colmena-portal/README.md)
 ```
 
 **Para regenerar el CSS** después de tocar clases nuevas en los HTML o en
@@ -136,7 +149,7 @@ sin cambios.
 4. Media (imágenes/video): comprimir antes de commitear
 5. Sin frameworks pesados salvo pedido explícito (React, Vue, etc.)
 6. Un archivo HTML por interfaz — sin rutas dinámicas complejas
-7. Glassmorphism y animaciones: CSS puro primero; JS solo si no alcanza
+7. Animaciones: GSAP (vendorizado en `assets/vendor/`) permitido; CSS para lo trivial
 
 ---
 
