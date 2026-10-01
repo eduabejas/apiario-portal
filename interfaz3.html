@@ -2,30 +2,262 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interfaz 3 — Bitácora de colmenas | Portal Apiario</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bitácora de colmenas | Portal Apiario</title>
+  <meta name="theme-color" content="#E8A317">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/bitacora.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/styles.css">
+  <style>[x-cloak] { display: none !important; }</style>
   <script src="assets/js/usuarios.js"></script>
+  <script src="assets/js/bitacora-config.js"></script>
+  <script src="assets/js/bitacora-core.js"></script>
   <script src="assets/js/topbar.js"></script>
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script src="assets/vendor/qrcode.js"></script>
+  <script src="assets/js/bitacora.js"></script>
+  <script defer src="assets/alpine.min.js"></script>
 </head>
 <body>
-  <div class="honey-bg" aria-hidden="true"><span></span><span></span></div>
+  <div class="honey-bg bitacora" aria-hidden="true"><span></span><span></span></div>
 
-  <main class="mx-auto max-w-2xl px-4 py-10 sm:py-16">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <a class="font-semibold text-miel-dark hover:underline" href="index.html">← Portal</a>
-      <span class="glass-card px-3 py-1.5 text-sm" id="user-chip">👤 —</span>
+  <div x-data="bitacora" x-init="init()">
+
+    <!-- ===================== Selector de usuario ===================== -->
+    <section x-show="pantalla === 'selector-usuario'" x-cloak
+             class="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 px-6 safe-top safe-bottom">
+      <div class="text-center">
+        <h1 class="text-2xl font-bold">🐝 Bitácora de colmenas</h1>
+        <p class="mt-1 text-gris">¿Quién está revisando?</p>
+      </div>
+      <div class="grid w-full max-w-sm gap-3">
+        <template x-for="[slug, datos] in Object.entries(window.APIARIO_USUARIOS)" :key="slug">
+          <button type="button" class="opcion-campo min-h-20 text-lg" @click="elegirUsuario(slug)" x-text="datos.nombre"></button>
+        </template>
+      </div>
+    </section>
+
+    <!-- ========================== Vista QR ============================ -->
+    <section x-show="pantalla === 'qr'" x-cloak class="mx-auto max-w-3xl px-4 py-8 print:max-w-none print:p-0">
+      <div class="print:hidden">
+        <a href="interfaz3.html" class="text-sm font-semibold text-miel-dark hover:underline">← Volver a la bitácora</a>
+        <h1 class="mt-3 text-xl font-bold">Generar QR para las tapas</h1>
+        <p class="mb-5 text-sm text-gris">Cada QR abre la bitácora directo en esa colmena (sin pasar por el selector).</p>
+
+        <div class="glass-card mb-6 grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+          <label class="text-sm text-gris">Prefijo
+            <input x-model="qr.prefijo" type="text" maxlength="4" class="mt-1 w-full rounded-lg border border-borde px-2 py-1.5 uppercase text-tinta">
+          </label>
+          <label class="text-sm text-gris">Desde
+            <input x-model.number="qr.desde" type="number" min="0" class="mt-1 w-full rounded-lg border border-borde px-2 py-1.5 text-tinta">
+          </label>
+          <label class="text-sm text-gris">Hasta
+            <input x-model.number="qr.hasta" type="number" min="0" class="mt-1 w-full rounded-lg border border-borde px-2 py-1.5 text-tinta">
+          </label>
+          <label class="text-sm text-gris">Padding
+            <input x-model.number="qr.padding" type="number" min="0" max="4" class="mt-1 w-full rounded-lg border border-borde px-2 py-1.5 text-tinta">
+          </label>
+        </div>
+
+        <div class="mb-6 flex gap-3">
+          <button type="button" class="btn-miel" @click="generarQrs">Generar</button>
+          <button type="button" class="rounded-xl border-2 border-borde bg-white px-4 py-2 font-semibold" @click="window.print()">Imprimir</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 print:gap-2">
+        <template x-for="celda in qrCeldas" :key="celda.id">
+          <div class="break-inside-avoid flex flex-col items-center justify-center gap-1 rounded-xl border border-borde p-3 print:rounded-none print:border-black">
+            <div x-html="celda.svg" class="w-full"></div>
+            <span class="text-sm font-extrabold tabular-nums" x-text="celda.id"></span>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- ================= App principal: abrir / revisión / éxito ================= -->
+    <div x-show="pantalla !== 'selector-usuario' && pantalla !== 'qr'" x-cloak class="mx-auto max-w-xl px-4 pb-32 safe-top">
+
+      <header class="glass-card safe-top sticky top-2 z-30 mb-4 flex items-center justify-between gap-3 px-4 py-3">
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="text-sm font-semibold text-miel-dark hover:underline">← Portal</a>
+          <span id="colmena-id-actual" x-show="colmenaId" x-cloak class="text-xl font-extrabold tabular-nums" x-text="colmenaId"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" x-show="pendientes.length" x-cloak @click="abrirPendientes"
+                  class="min-h-9 min-w-9 rounded-full bg-alerta px-2.5 py-1 text-xs font-bold text-white"
+                  :aria-label="pendientes.length + ' revisiones pendientes de enviar'">
+            <span x-text="pendientes.length"></span>
+          </button>
+          <span class="glass-card px-3 py-1.5 text-sm" id="user-chip">👤 —</span>
+        </div>
+      </header>
+
+      <p x-show="modoDemo" x-cloak class="mb-4 rounded-lg bg-miel-100 px-3 py-1.5 text-center text-xs font-semibold text-miel-dark">
+        Modo demo — todavía no hay backend conectado, nada se envía de verdad
+      </p>
+
+      <!-- Pantalla: abrir colmena -->
+      <section x-show="pantalla === 'abrir'" x-cloak>
+        <h2 class="mb-1 text-lg font-bold">Abrir colmena</h2>
+        <p class="mb-4 text-sm text-gris">Escaneá el QR de la tapa o escribí el ID a mano.</p>
+
+        <form @submit.prevent="confirmarColmenaInput">
+          <input x-ref="inputColmena" x-model="colmenaInput" @input="validarInputColmena"
+                 type="text" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"
+                 placeholder="A07" maxlength="12"
+                 class="w-full rounded-xl border-2 border-borde bg-white px-4 py-5 text-center text-2xl font-extrabold tracking-widest tabular-nums focus:border-miel focus:outline-none">
+          <p x-show="colmenaError" x-cloak x-text="colmenaError" class="mt-2 text-sm font-semibold text-critico"></p>
+          <button type="submit" class="btn-miel mt-4 w-full">Abrir</button>
+        </form>
+
+        <div x-show="recientes.length" x-cloak class="mt-7">
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gris">Usadas recientemente</p>
+          <div class="flex flex-wrap gap-2">
+            <template x-for="id in recientes" :key="id">
+              <button type="button" @click="abrirColmena(id)"
+                      class="min-h-11 rounded-full border border-borde bg-white px-4 text-sm font-semibold" x-text="id"></button>
+            </template>
+          </div>
+        </div>
+
+        <a href="interfaz3.html?vista=qr" class="mt-10 block text-center text-xs text-gris underline">Generar QR para las tapas</a>
+      </section>
+
+      <!-- Pantalla: revisión -->
+      <section x-show="pantalla === 'revision'" x-cloak>
+
+        <div class="mb-5 flex items-center justify-center">
+          <svg viewBox="0 0 44 44" class="h-14 w-14 -rotate-90" role="img" aria-hidden="true">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="var(--color-borde)" stroke-width="4"/>
+            <circle id="anillo-progreso-valor" cx="22" cy="22" r="18" fill="none" stroke="var(--color-miel)"
+                    stroke-width="4" stroke-linecap="round"
+                    style="stroke-dasharray:113.097; stroke-dashoffset:113.097"/>
+          </svg>
+          <span class="sr-only" x-text="completosN + ' de ' + totalCampos + ' campos completados'"></span>
+        </div>
+
+        <div class="mb-5">
+          <template x-if="ultimaCargando">
+            <div class="skeleton h-16 rounded-xl"></div>
+          </template>
+          <template x-if="!ultimaCargando && ultima">
+            <div class="glass-card px-4 py-3 text-sm">
+              <p class="mb-2 font-semibold">
+                Última revisión: <span x-text="tiempoRelativo(ultima.timestamp)"></span>
+                <span x-show="ultima.usuario"> · <span x-text="ultima.usuario"></span></span>
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                <template x-for="campo in CAMPOS" :key="campo.key">
+                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="toneDe(campo, ultima[campo.key])" x-text="ultima[campo.key] || '—'"></span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="space-y-4">
+          <template x-for="campo in CAMPOS" :key="campo.key">
+            <div data-tarjeta-campo :id="'tarjeta-campo-' + campo.key" class="rounded-2xl border border-borde bg-white p-4">
+              <div class="mb-3 flex items-center justify-between">
+                <h3 class="font-semibold" x-text="campo.etiqueta"></h3>
+                <svg x-show="seleccion[campo.key]" x-cloak class="h-5 w-5 text-ok" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path class="check-tarjeta" d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="grid grid-cols-2 gap-2.5" role="radiogroup" :aria-label="campo.etiqueta" @keydown="manejarFlechas($event)">
+                <template x-for="opcion in campo.opciones" :key="opcion.valor">
+                  <button type="button" role="radio" :aria-checked="seleccion[campo.key] === opcion.valor"
+                          class="opcion-campo" :class="seleccion[campo.key] === opcion.valor ? tonoClases[opcion.tono] : ''"
+                          @click="elegirOpcion(campo.key, opcion.valor, $event)" x-text="opcion.valor"></button>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </section>
+
+      <!-- Pantalla: éxito -->
+      <section x-show="pantalla === 'exito'" x-cloak class="flex flex-col items-center justify-center gap-6 py-14 text-center">
+        <svg viewBox="0 0 120 120" class="h-40 w-40" aria-hidden="true">
+          <defs><clipPath id="hex-clip"><polygon points="60,8 108,34 108,86 60,112 12,86 12,34"/></clipPath></defs>
+          <rect id="hex-liquid" x="12" y="8" width="96" height="104" fill="var(--color-miel)" clip-path="url(#hex-clip)"/>
+          <polygon id="hex-outline" points="60,8 108,34 108,86 60,112 12,86 12,34" fill="none" stroke="var(--color-miel-dark)" stroke-width="4" stroke-linejoin="round"/>
+          <path id="hex-check" d="M38 62l16 16 28-32" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="text-lg font-bold" x-text="exitoInmediato ? 'Guardado' : 'Guardado en el dispositivo · se enviará con señal'"></p>
+        <div class="grid w-full max-w-xs gap-2.5">
+          <button type="button" x-show="siguienteColmenaId" x-cloak class="btn-miel" @click="siguienteColmena"
+                  x-text="'Siguiente colmena (' + siguienteColmenaId + ')'"></button>
+          <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="otraColmena">Otra colmena</button>
+        </div>
+      </section>
     </div>
 
-    <h1 class="text-2xl font-bold">🐝 Interfaz 3</h1>
-    <p class="mt-1 mb-6 text-gris">Bitácora de colmenas</p>
-
-    <div class="glass-card border-2 border-dashed p-10 text-center text-gris">
-      Próximo módulo: formulario de revisión de colmena (fecha, colmena, reina,
-      cría, reservas, sanidad, notas, foto) guardado en la hoja
-      <strong>Revisiones</strong> de Apiario_DB vía un endpoint <code>doPost</code>
-      de Apps Script.
+    <!-- Botón sticky: guardar (fuera del contenedor con padding para fijarlo prolijo) -->
+    <div x-show="pantalla === 'revision'" x-cloak class="fixed inset-x-0 bottom-0 z-30 px-4 pb-4 safe-bottom">
+      <button id="btn-guardar" type="button"
+              class="btn-miel relative mx-auto block w-full max-w-xl overflow-hidden"
+              :disabled="completosN < totalCampos" @click="abrirResumen">
+        <span class="brillo pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-white/40"></span>
+        <span x-text="'Guardar revisión · ' + completosN + '/' + totalCampos"></span>
+      </button>
     </div>
-  </main>
+
+    <!-- Hoja inferior: resumen -->
+    <div id="hoja-resumen" x-show="mostrarResumen" x-cloak class="hoja-inferior" role="dialog" aria-modal="true" aria-label="Confirmar revisión">
+      <div class="fondo" @click="cerrarResumen"></div>
+      <div class="panel">
+        <h3 class="mb-3 text-lg font-bold">Confirmar revisión</h3>
+        <ul class="mb-5 space-y-2 text-sm">
+          <template x-for="campo in CAMPOS" :key="campo.key">
+            <li class="flex items-center justify-between border-b border-borde pb-2">
+              <span class="text-gris" x-text="campo.etiqueta"></span>
+              <span class="font-semibold" x-text="seleccion[campo.key]"></span>
+            </li>
+          </template>
+        </ul>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="cerrarResumen">Editar</button>
+          <button type="button" class="btn-miel" @click="confirmarGuardado">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hoja inferior: pendientes -->
+    <div id="hoja-pendientes" x-show="mostrarPendientes" x-cloak class="hoja-inferior" role="dialog" aria-modal="true" aria-label="Revisiones pendientes de enviar">
+      <div class="fondo" @click="cerrarPendientes"></div>
+      <div class="panel">
+        <h3 class="mb-3 text-lg font-bold">Pendientes de enviar</h3>
+        <p x-show="!pendientes.length" x-cloak class="mb-5 text-sm text-gris">No hay revisiones pendientes.</p>
+        <ul class="mb-5 space-y-2 text-sm" x-show="pendientes.length">
+          <template x-for="registro in pendientes" :key="registro.id">
+            <li class="border-b border-borde pb-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold" x-text="registro.colmena"></span>
+                <span class="text-xs text-gris" x-text="tiempoRelativo(registro.timestamp)"></span>
+              </div>
+              <p class="text-xs" :class="registro.estado === 'rechazado' ? 'text-critico' : 'text-gris'"
+                 x-text="registro.estado === 'rechazado' ? ('Rechazado: ' + (registro.motivo || 'dato inválido')) : 'Pendiente de señal'"></p>
+            </li>
+          </template>
+        </ul>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="cerrarPendientes">Cerrar</button>
+          <button type="button" class="btn-miel" :disabled="!pendientes.length" @click="reintentarAhora">Reintentar ahora</button>
+        </div>
+      </div>
+    </div>
+
+    <div aria-live="polite" class="sr-only" x-text="estadoEnvioTexto"></div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () { /* PWA es un plus, no bloquea la app */ });
+      });
+    }
+  </script>
 </body>
 </html>

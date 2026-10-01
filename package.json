@@ -4,13 +4,17 @@
   "version": "1.0.0",
   "description": "Portal estatico del apiario (GitHub Pages) - Tailwind CSS + Alpine.js",
   "scripts": {
-    "build:css": "tailwindcss -i ./src/tailwind.css -o ./assets/styles.css --minify"
+    "build:css": "tailwindcss -i ./src/tailwind.css -o ./assets/styles.css --minify",
+    "vendor": "mkdir -p assets/vendor && cp node_modules/gsap/dist/gsap.min.js assets/vendor/ && cp node_modules/qrcode-generator/dist/qrcode.js assets/vendor/",
+    "test": "node --test tests/**/*.test.js"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4",
     "tailwindcss": "^4"
   },
   "dependencies": {
-    "alpinejs": "^3"
+    "alpinejs": "^3",
+    "gsap": "^3.15.0",
+    "qrcode-generator": "^2.0.4"
   }
 }

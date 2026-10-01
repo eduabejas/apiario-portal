@@ -8,6 +8,13 @@
   --color-tinta: #2B2118;
   --color-gris: #6B5E50;
   --color-borde: #EADBBF;
+
+  /* Tonos semánticos de la bitácora (estado de cada campo revisado) */
+  --color-ok: #2E7D32;
+  --color-medio: #E8A317;
+  --color-alerta: #E65100;
+  --color-critico: #C62828;
+  --color-neutro: #6B6B6B;
 }
 
 @layer base {
@@ -108,4 +115,98 @@
   .btn-miel:hover:not(:disabled) { background: var(--color-miel-dark); }
   .btn-miel:active:not(:disabled) { transform: scale(0.98); }
   .btn-miel:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* --- Bitácora de colmenas (interfaz3.html) --- */
+
+  /* Respeta notches/home-indicator sin que cada vista reescriba env(). */
+  .safe-top { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+  .safe-bottom { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
+  /* Patrón de hexágonos muy sutil, solo para la bitácora: se agrega como
+     modificador de .honey-bg (no se toca el fondo del portal/interfaz2). */
+  .honey-bg.bitacora::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='48' viewBox='0 0 28 48'%3E%3Cpath fill='none' stroke='%232B2118' stroke-width='1' d='M14 0 28 8v16l-14 8-14-8V8z'/%3E%3C/svg%3E");
+    background-size: 28px 48px;
+  }
+
+  /* Tarjeta de opción táctil (botón segmentado dentro de cada campo). El
+     color de tono (bg-ok, bg-critico, …) se aplica aparte y gana por venir
+     después en la cascada de @layer utilities. */
+  .opcion-campo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 56px;
+    border-radius: 0.875rem;
+    border: 2px solid var(--color-borde);
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-tinta);
+    text-align: center;
+    touch-action: manipulation;
+    transition: transform 0.15s, background-color 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .opcion-campo:active { transform: scale(0.97); }
+  .opcion-campo .check-path {
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+  }
+
+  /* Shimmer de carga para "última revisión" mientras llega el fetch. */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-borde) 60%, transparent);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, white 70%, transparent), transparent);
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+  }
+  @keyframes skeleton-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after { animation: none; }
+  }
+
+  /* Bottom sheet (resumen / pendientes) */
+  .hoja-inferior {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+  .hoja-inferior .fondo {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  }
+  .hoja-inferior .panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 1.25rem 1.25rem 0 0;
+    background: var(--color-cera);
+    border-top: 1px solid var(--color-borde);
+    padding: 1.25rem 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Impresión de la grilla de QR (interfaz3.html?vista=qr). Fuera de @layer:
+   @page no puede anidarse dentro de una capa de cascada. */
+@media print {
+  @page { size: A4; margin: 10mm; }
+  body { background: #fff !important; }
 }
