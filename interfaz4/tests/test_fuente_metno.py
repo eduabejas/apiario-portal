@@ -146,3 +146,14 @@ def test_5xx_reintenta_y_degrada():
     serie = fuente(intentos=3).obtener(APIARIO, local("2026-10-04T09:00"), local("2026-10-04T10:00"))
     assert ruta.call_count == 3
     assert serie.errores and serie.puntos[0].temp_c is None
+
+
+@respx.mock
+def test_sin_red_no_insiste_en_la_misma_ejecucion():
+    ruta = respx.get(URL).mock(side_effect=httpx.ConnectError("sin red"))
+    f = fuente(intentos=3)
+    serie = f.obtener(APIARIO, local("2026-10-04T09:00"), local("2026-10-04T10:00"))
+    assert "MET Norway no respondió" in serie.errores[0]
+    assert ruta.call_count == 3
+    f.obtener(APIARIO, local("2026-10-03T21:00"), local("2026-10-04T09:00"), variables="precipitacion")
+    assert ruta.call_count == 3  # el tramo previo no vuelve a reintentar

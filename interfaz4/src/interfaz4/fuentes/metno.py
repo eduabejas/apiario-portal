@@ -112,7 +112,12 @@ class FuenteMETNorway(Fuente):
         cabeceras = {}
         if entrada and entrada.get("last_modified"):
             cabeceras["If-Modified-Since"] = entrada["last_modified"]
-        resp = self.http.get(URL, params=params, headers=cabeceras)
+        try:
+            resp = self.http.get(URL, params=params, headers=cabeceras)
+        except ErrorFuente as e:
+            # Sin red hacia MET Norway: no se insiste en el resto de la ejecución.
+            self._frenada = f"MET Norway no respondió: {e}"
+            raise ErrorFuente(self._frenada) from e
         if resp.status_code == 304 and entrada:
             cuerpo = entrada["cuerpo"]
             last_modified = entrada.get("last_modified")

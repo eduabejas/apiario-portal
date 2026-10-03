@@ -17,7 +17,7 @@ coordenada**. Open-Meteo no se consultó (apagada por decisión del usuario).
 | B — MET Norway compact | ✅ | HTTP 200 (gzip) y 304 con `If-Modified-Since`. Sin probabilidad ni ráfagas. |
 | C — Alertas SMN (CAP) | ✅ | Feed detrás de Cloudflare pero **sin challenge** desde GitHub Actions (HTTP 200). |
 | D — Open-Meteo | — | No consultada: el uso no califica como no comercial (decisión del usuario). |
-| E — ECMWF ENS | — | Fase 7. El bucket `s3://ecmwf-forecasts` responde con acceso anónimo. |
+| E — ECMWF ENS | — | Fase 7 (apagada). Medido: ~42 MB por paso de 3 h para `tp` de 50 miembros. |
 
 ## A — SMN WRF-SMN determinístico
 
@@ -104,6 +104,26 @@ Ejemplo concreto (ciclo 03/10 18 UTC, plazo 012, válido 04/10 06 UTC):
 - Los textos de instrucciones del SMN incluyen palabras como "evitá" o
   "riesgo": se copian **textuales**, y el test de palabras valorativas
   excluye el texto de las alertas.
+
+## E — ECMWF Open Data ENS (Fase 7, apagada)
+
+Medición del 03/10/2026 sobre `s3://ecmwf-forecasts` (acceso anónimo,
+región eu-central-1), corrida `20261003/12z/ifs/0p25/enfo`:
+
+- Un archivo GRIB2 por paso (`…-24h-enfo-ef.grib2`, 6,8 GB con todas las
+  variables y miembros) y un `.index` JSON por línea con `_offset` y
+  `_length` de cada mensaje: se puede bajar solo `param=tp` de los 50
+  miembros perturbados (`type=pf`) con pedidos por rango.
+- `tp` de los 50 miembros en un paso: **41,8 MB** (~0,84 MB por miembro,
+  grilla global de 0,25°).
+- Pasos cada 3 h: una ventana de 4 h necesita 3 pasos → **~125 MB por
+  informe** (~250 MB por visita), más la dependencia `eccodes` para
+  decodificar GRIB.
+- Conclusión: es viable y es la única fuente sin restricción comercial que
+  aporta "% de miembros con precipitación ≥ 0,1 mm" (por intervalo de 3 h).
+  Queda **apagada** (`fuentes.ecmwf_ens.habilitada: false`) y sin
+  implementar en esta entrega; es el próximo paso recomendado si se quiere
+  probabilidad de lluvia.
 
 ## Entorno
 
