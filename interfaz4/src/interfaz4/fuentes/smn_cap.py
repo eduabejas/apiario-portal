@@ -38,6 +38,7 @@ class AlertaGeo:
     alerta: Alerta
     poligonos: list[Polygon] = field(default_factory=list)
     circulos: list[tuple[float, float, float]] = field(default_factory=list)  # lat, lon, radio_km
+    referencias: list[str] = field(default_factory=list)  # identificadores que este mensaje reemplaza
 
     @property
     def tiene_geometria(self) -> bool:
@@ -115,6 +116,8 @@ def parsear_cap(contenido: bytes, url: str | None = None) -> list[AlertaGeo]:
         return []
     identificador = _texto(raiz, "identifier", ns) or (url or "sin-identificador")
     enviada = _fecha(_texto(raiz, "sent", ns))
+    # <references>: "remitente,identificador,enviado" separados por espacios (Update/Cancel).
+    referencias = [r.split(",")[1] for r in (_texto(raiz, "references", ns) or "").split() if r.count(",") >= 2]
     infos = raiz.findall("cap:info", ns)
     en_espanol = [i for i in infos if (_texto(i, "language", ns) or "es").lower().startswith("es")]
     resultado: list[AlertaGeo] = []
@@ -148,7 +151,7 @@ def parsear_cap(contenido: bytes, url: str | None = None) -> list[AlertaGeo]:
             remitente=_texto(info, "senderName", ns),
             url=url or _texto(info, "web", ns),
         )
-        resultado.append(AlertaGeo(alerta, poligonos, circulos))
+        resultado.append(AlertaGeo(alerta, poligonos, circulos, referencias))
     return resultado
 
 
@@ -215,6 +218,9 @@ class FuenteAlertasSMN:
         incluidas: list[Alerta] = []
         fallidas = 0
         sin_geometria = 0
+        reemplazadas = {
+            ref for res in (self._alertas[u] for u in enlaces) if not isinstance(res, str) for ag in res for ref in ag.referencias
+        }
         for url in enlaces:
             res = self._alertas[url]
             if isinstance(res, str):
@@ -225,7 +231,7 @@ class FuenteAlertasSMN:
                 if not ag.tiene_geometria:
                     sin_geometria += 1
                     continue
-                if ag.alerta.identificador in vistas:
+                if ag.alerta.identificador in vistas or ag.alerta.identificador.split("#")[0] in reemplazadas:
                     continue
                 if ag.contiene(apiario.lat, apiario.lon) and superpone(ag.alerta, inicio, fin):
                     vistas.add(ag.alerta.identificador)
