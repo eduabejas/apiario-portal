@@ -1,2 +1,12 @@
 node_modules/
 .DS_Store
+
+# Interfaz 4 (motor Python)
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+interfaz4/.venv/
+interfaz4/.env
+interfaz4/state/cache_metno.json
+interfaz4/salida*.html

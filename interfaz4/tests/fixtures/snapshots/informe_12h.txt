@@ -1,0 +1,53 @@
+🐝 Informe de visita — 12 h antes
+Apiario de producción melífera · Berisso, Buenos Aires (-34.8892, -57.8279)
+Visita: domingo 04/10/2026 · 09:00–13:00 (hora Argentina)
+Responsable: Eduardo Mendoza · Notas: Revisión de núcleos
+Generado: sábado 03/10/2026 21:17 · Último informe programado para esta visita
+
+ALERTAS SMN
+1 alerta SMN vigente para este punto y horario (texto copiado del SMN):
+
+- ALERTA AMARILLA POR TORMENTAS
+  Evento: TORMENTAS · Severidad: Moderate · Urgencia: Expected · Certeza: Likely
+  Vigencia: desde domingo 04/10/2026 10:00 hasta domingo 04/10/2026 18:00
+  Área: BUENOS AIRES: BERISSO - LA PLATA - ENSENADA.
+  El área será afectada por tormentas de variada intensidad, algunas localmente fuertes.
+  Se esperan valores de precipitación acumulada entre 20 y 50 mm.
+  Evitá salir. Para minimizar el riesgo de ser alcanzado por un rayo, no permanezcas en espacios abiertos.
+  https://ssl.smn.gob.ar/feeds/CAP/xml_generados/sintetica_berisso.xml
+
+RESUMEN DE LA VENTANA
+                                 SMN WRF   MET Norway
+Temp. mín / máx (°C)         11,7 / 18,2  14,2 / 20,3
+Humedad mín / máx (%)            67 / 95      41 / 92
+Viento máx (km/h) · rumbo        8 · NNO     13 · OSO
+Ráfaga máx (km/h)                    s/d          s/d
+Precipitación total (mm)             0,0          0,0
+Prob. precipitación máx (%)          s/d          s/d
+s/d = sin dato en la fuente.
+Ráfagas y probabilidad de precipitación: SMN WRF y MET Norway no publican esos datos para este punto.
+
+ANTES DE LA VISITA (21:00 del sábado → 09:00 del domingo)
+Precipitación total prevista: SMN WRF 0,0 mm · MET Norway 0,0 mm
+
+DETALLE HORARIO — SMN WRF (ciclo 03/10 12 UTC)
+Hora   Temp  HR  Viento  Dir  Ráfaga  Lluvia  Prob.
+09:00  11,7  95       3    O     s/d     0,0    s/d
+10:00  14,6  82       4  ONO     s/d     0,0    s/d
+11:00  17,2  71       5  ONO     s/d     0,0    s/d
+12:00  18,2  67       8  NNO     s/d     0,0    s/d
+
+DETALLE HORARIO — MET Norway (actualizado 03/10 19:21 UTC)
+Hora   Temp  HR  Viento  Dir  Ráfaga  Lluvia  Prob.
+09:00  14,2  92       8  SSO     s/d     0,0    s/d
+10:00  17,4  78       6  OSO     s/d     0,0    s/d
+11:00  19,3  61      10    O     s/d     0,0    s/d
+12:00  20,3  41      13  OSO     s/d     0,0    s/d
+(Temp °C · HR % · Viento y ráfaga km/h · Lluvia mm y Prob. % del intervalo [hora, hora+1))
+
+FUENTES Y LICENCIAS
+- SMN WRF: ciclo 03/10 12 UTC · consultado sábado 03/10/2026 21:17
+- MET Norway: actualizado 03/10 19:21 UTC · consultado sábado 03/10/2026 21:17
+- Alertas SMN: consultadas sábado 03/10/2026 21:17
+Pronóstico WRF-SMN © Servicio Meteorológico Nacional (Argentina), CC BY 2.5 AR. Datos de MET Norway (api.met.no), CC BY 4.0. Alertas: Servicio Meteorológico Nacional (CAP), CC BY 4.0.
+Este informe presenta datos de pronóstico sin interpretación. Las decisiones quedan a criterio de quien visita el apiario.

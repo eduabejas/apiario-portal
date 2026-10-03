@@ -11,7 +11,8 @@ window.APIARIO_USUARIOS = {
 window.APIARIO_INTERFACES = {
   '1': { pagina: 'interfaz1.html', titulo: 'Satélites, precipitaciones y QGIS soft', icono: '🛰️' },
   '2': { pagina: 'interfaz2.html', titulo: 'Datos, precios y gráficos', icono: '📊' },
-  '3': { pagina: 'interfaz3.html', titulo: 'Bitácora de colmenas', icono: '📋' }
+  '3': { pagina: 'interfaz3.html', titulo: 'Bitácora de colmenas', icono: '📋' },
+  '4': { pagina: 'interfaz4.html', titulo: 'Contexto meteorológico de visitas', icono: '🌦️' }
 };
 
 /** Usuario actual según ?u= en la URL, o null si no hay uno válido. */

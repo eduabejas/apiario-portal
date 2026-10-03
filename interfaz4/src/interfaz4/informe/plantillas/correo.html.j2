@@ -1,0 +1,96 @@
+{% set h2 = "margin:22px 0 8px;font-size:13px;letter-spacing:.04em;color:#B87A00;font-weight:700;" %}
+{% set th = "padding:6px 8px;border-bottom:1px solid #EADBBF;text-align:right;font-weight:600;white-space:nowrap;" %}
+{% set td = "padding:5px 8px;border-bottom:1px solid #F3E9D2;text-align:right;white-space:nowrap;" %}
+{% set nota = "margin:6px 0 0;font-size:12px;color:#6B5E50;" %}
+{% set thd = "padding:4px 3px;border-bottom:1px solid #EADBBF;text-align:right;font-weight:600;white-space:nowrap;" %}
+{% set tdd = "padding:3px 3px;border-bottom:1px solid #F3E9D2;text-align:right;white-space:nowrap;" %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ v.asunto }}</title>
+</head>
+<body style="margin:0;padding:0;background:#FFF8E7;color:#2B2118;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.45;">
+<div style="max-width:680px;margin:0 auto;padding:12px;">
+<div style="background:#E8A317;border-radius:12px 12px 0 0;padding:14px 16px;">
+<div style="font-size:19px;font-weight:700;color:#2B2118;">🐝 {{ v.titulo }}</div>
+</div>
+<div style="background:#ffffff;border:1px solid #EADBBF;border-top:0;border-radius:0 0 12px 12px;padding:14px 16px 18px;">
+<p style="margin:0 0 3px;font-weight:700;">{{ v.apiario_linea }}</p>
+<p style="margin:0 0 3px;">{{ v.visita_linea }}</p>
+<p style="margin:0 0 3px;">{{ v.responsable_linea }}</p>
+<p style="margin:0;font-size:13px;color:#6B5E50;">{{ v.generado_linea }}</p>
+
+<h2 style="{{ h2 }}">ALERTAS SMN</h2>
+<p style="margin:0;">{{ v.alertas_mensaje }}</p>
+{% for a in v.alertas %}
+<div style="margin:10px 0 0;padding:10px 12px;border:1px solid #EADBBF;border-left:4px solid #B87A00;border-radius:6px;background:#FFFDF7;">
+<p style="margin:0 0 4px;font-weight:700;">{{ a.titular }}</p>
+<p style="margin:0 0 4px;font-size:13px;">Evento: {{ a.evento }}{% if a.clasificacion %} · {{ a.clasificacion }}{% endif %}</p>
+<p style="margin:0 0 4px;font-size:13px;">Vigencia: {{ a.vigencia }}</p>
+{% if a.areas %}<p style="margin:0 0 4px;font-size:13px;">Área: {{ a.areas }}</p>{% endif %}
+{% if a.descripcion %}<p style="margin:6px 0 0;white-space:pre-line;">{{ a.descripcion }}</p>{% endif %}
+{% if a.instruccion %}<p style="margin:6px 0 0;white-space:pre-line;font-size:13px;">{{ a.instruccion }}</p>{% endif %}
+{% if a.url %}<p style="margin:6px 0 0;font-size:12px;word-break:break-all;"><a href="{{ a.url }}" style="color:#B87A00;">{{ a.url }}</a></p>{% endif %}
+</div>
+{% endfor %}
+
+<h2 style="{{ h2 }}">RESUMEN DE LA VENTANA</h2>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;">
+<tr><th style="{{ th }}text-align:left;"></th>{% for c in v.columnas %}<th style="{{ th }}">{{ c }}</th>{% endfor %}</tr>
+{% for etiqueta, valores in v.resumen %}
+<tr><td style="{{ td }}text-align:left;white-space:normal;">{{ etiqueta }}</td>{% for val in valores %}<td style="{{ td }}">{{ val }}</td>{% endfor %}</tr>
+{% endfor %}
+</table>
+{% for n in v.notas_resumen %}
+<p style="{{ nota }}">{{ n }}</p>
+{% endfor %}
+{% if v.tramo_titulo %}
+
+<h2 style="{{ h2 }}">{{ v.tramo_titulo }}</h2>
+<p style="margin:0;">Precipitación total prevista: {{ v.tramo_partes | join(" · ") }}</p>
+{% endif %}
+{% for d in v.detalles %}
+
+<h2 style="{{ h2 }}">{{ d.titulo }}</h2>
+<div style="overflow-x:auto;">
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;">
+<tr>{% for c in columnas_detalle %}<th style="{{ thd }}{% if loop.first %}text-align:left;{% endif %}">{{ c }}</th>{% endfor %}</tr>
+{% for fila in d.filas %}
+<tr>{% for celda in fila %}<td style="{{ tdd }}{% if loop.first %}text-align:left;{% endif %}">{{ celda }}</td>{% endfor %}</tr>
+{% endfor %}
+</table>
+</div>
+<p style="{{ nota }}">Temp (°C) · HR (%) · Viento y ráfaga (km/h) · Lluvia (mm) y Prob. (%) del intervalo [hora, hora+1).</p>
+{% endfor %}
+{% if v.cambios_titulo %}
+
+<h2 style="{{ h2 }}">{{ v.cambios_titulo }}</h2>
+<ul style="margin:0;padding-left:18px;font-size:14px;">
+{% for c in v.cambios %}
+<li>{{ c }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h2 style="{{ h2 }}">FUENTES Y LICENCIAS</h2>
+<ul style="margin:0;padding-left:18px;font-size:13px;">
+{% for p in v.pie_fuentes %}
+<li>{{ p }}</li>
+{% endfor %}
+</ul>
+{% if v.avisos %}
+<p style="{{ nota }}">Avisos de esta ejecución:</p>
+<ul style="margin:2px 0 0;padding-left:18px;font-size:12px;color:#6B5E50;">
+{% for a in v.avisos %}
+<li>{{ a }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+<p style="{{ nota }}">{{ v.atribuciones | join(" ") }}</p>
+<p style="margin:14px 0 0;font-size:13px;font-weight:600;">{{ v.leyenda }}</p>
+</div>
+</div>
+</body>
+</html>

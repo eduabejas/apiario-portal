@@ -1,0 +1,80 @@
+name: Interfaz 4 — verificación de fuentes
+
+# Fase 0 (y chequeo manual posterior): consulta cada fuente desde el entorno
+# real de ejecución (GitHub Actions), guarda respuestas en
+# interfaz4/tests/fixtures/ultima_verificacion/ y deja el reporte en
+# interfaz4/docs/verificacion_fuentes_ejecucion.md. En ramas de trabajo
+# commitea esos archivos a la misma rama; en main solo los sube como artefacto.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'interfaz4/scripts/verificar_fuentes.py'
+      - 'interfaz4/scripts/informe_en_vivo.py'
+      - '.github/workflows/interfaz4-verificar.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: interfaz4-verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: interfaz4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: interfaz4/uv.lock
+
+      - name: Instalar dependencias
+        run: uv sync --frozen
+
+      - name: Verificar fuentes
+        env:
+          METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
+        run: uv run python scripts/verificar_fuentes.py
+
+      - name: Informe en vivo (no se envía)
+        env:
+          METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
+        run: uv run python scripts/informe_en_vivo.py
+
+      - name: Subir reporte y respuestas
+        uses: actions/upload-artifact@v4
+        with:
+          name: verificacion-fuentes
+          path: |
+            interfaz4/docs/verificacion_fuentes_ejecucion.md
+            interfaz4/tests/fixtures/ultima_verificacion/
+
+      - name: Guardar en la rama de trabajo
+        if: github.ref != 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/verificacion_fuentes_ejecucion.md tests/fixtures/ultima_verificacion
+          if git diff --cached --quiet; then
+            echo "Sin cambios para guardar."
+            exit 0
+          fi
+          git commit -m "chore(interfaz4): verificación de fuentes desde GitHub Actions"
+          for intento in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((intento * 5))
+          done
+          exit 1

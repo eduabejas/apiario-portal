@@ -1,0 +1,55 @@
+*🐝 {{ v.titulo }}*
+{{ v.apiario_linea }}
+{{ v.visita_linea }}
+{{ v.responsable_linea }}
+{{ v.generado_linea }}
+
+*Alertas SMN*
+{{ v.alertas_mensaje }}
+{% for a in v.alertas %}
+• *{{ a.titular }}* — {{ a.vigencia }}
+{% if a.descripcion %}
+{{ a.descripcion }}
+{% endif %}
+{% if a.instruccion %}
+{{ a.instruccion }}
+{% endif %}
+{% if a.url %}
+{{ a.url }}
+{% endif %}
+{% endfor %}
+
+*Resumen de la ventana*
+```
+{{ v.resumen_texto }}
+```
+{{ v.notas_resumen | join(" ") }}
+{% if v.tramo_titulo %}
+
+*{{ v.tramo_titulo }}*
+Precipitación total prevista: {{ v.tramo_partes | join(" · ") }}
+{% endif %}
+{% for d in v.detalles %}
+
+*{{ d.titulo }}*
+```
+{{ v.detalle_texto(d) }}
+```
+{% endfor %}
+{% if v.cambios_titulo %}
+
+*{{ v.cambios_titulo }}*
+{% for c in v.cambios %}
+• {{ c }}
+{% endfor %}
+{% endif %}
+
+*Fuentes y licencias*
+{% for p in v.pie_fuentes %}
+• {{ p }}
+{% endfor %}
+{% for a in v.avisos %}
+• Aviso: {{ a }}
+{% endfor %}
+{{ v.atribuciones | join(" ") }}
+_{{ v.leyenda }}_
