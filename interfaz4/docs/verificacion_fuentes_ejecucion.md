@@ -1,10 +1,10 @@
 # Verificación de fuentes — ejecución automática
 
-Generado el 2026-10-03 21:31 UTC en **GitHub Actions** (Linux 6.17.0-1022-azure, Python 3.12.14). Coordenada: -34.889180362505506, -57.82789829443907.
+Generado el 2026-10-03 21:44 UTC en **GitHub Actions** (Linux 6.17.0-1022-azure, Python 3.12.14). Coordenada: -34.889180362505506, -57.82789829443907.
 
 ## A — SMN WRF-SMN determinístico (s3://smn-ar-wrf)
 
-Consulta hecha a las 2026-10-03 21:31 UTC.
+Consulta hecha a las 2026-10-03 21:44 UTC.
 
 | Ciclo (UTC) | Archivos 01H | Plazos | Primera subida | Última subida | Demora (h) | Tipos |
 |---|---|---|---|---|---|---|
@@ -35,14 +35,14 @@ Archivo de muestra: `smn-ar-wrf/DATA/WRF/DET/2026/10/03/18/WRFDETAR_01H_20261003
 
 Otras variables del archivo: `ACLWDNB`, `ACLWUPB`, `ACSWDNB`, `Freezing_level`, `Lambert_Conformal`, `PSFC`, `SMOIS`, `TSLB`
 
-Punto de grilla más cercano: **(iy=621, ix=662)**, lat=-34.89776, lon=-57.84357, distancia **1.72 km**. Lectura de metadatos + lat/lon 2D: 2.84 MB en 8.5 s.
+Punto de grilla más cercano: **(iy=621, ix=662)**, lat=-34.89776, lon=-57.84357, distancia **1.72 km**. Lectura de metadatos + lat/lon 2D: 2.84 MB en 13.8 s.
 
 Bytes descargados al leer **un solo punto** (`isel(y=iy, x=ix)`):
 
 | Archivo | Variables | MB leídos | Segundos | Valores en el punto |
 |---|---|---|---|---|
-| 012 | 5 | 18.0 | 8.8 | `{'T2': 10.63, 'HR2': 100.41, 'magViento10': 0.0, 'dirViento10': 256.9, 'PP': 0.02}` |
-| 013 | 1 | 4.8 | 8.2 | `{'PP': 0.03}` |
+| 012 | 5 | 18.0 | 14.7 | `{'T2': 10.63, 'HR2': 100.41, 'magViento10': 0.0, 'dirViento10': 256.9, 'PP': 0.02}` |
+| 013 | 1 | 4.8 | 13.6 | `{'PP': 0.03}` |
 
 Semántica de `PP` (¿horaria o acumulada desde el inicio?) con campos completos:
 
@@ -55,8 +55,8 @@ Semántica de `PP` (¿horaria o acumulada desde el inicio?) con campos completos
 
 User-Agent usado: `interfaz4-apiarios/0.1 (+https://github.com/eduabejas/apiario-portal)` · parámetros: `{'lat': '-34.8892', 'lon': '-57.8279'}`
 
-- HTTP **200** en 1.0 s, 39765 bytes (descomprimidos).
-- Cabeceras: `{'content-type': 'application/json', 'content-encoding': 'gzip', 'expires': 'Sat, 03 Oct 2026 22:04:15 GMT', 'last-modified': 'Sat, 03 Oct 2026 21:32:22 GMT', 'age': '0', 'date': 'Sat, 03 Oct 2026 21:32:22 GMT', 'server': 'nginx/1.18.0 (Ubuntu)'}`
+- HTTP **200** en 0.8 s, 39765 bytes (descomprimidos).
+- Cabeceras: `{'content-type': 'application/json', 'content-encoding': 'gzip', 'expires': 'Sat, 03 Oct 2026 22:04:15 GMT', 'last-modified': 'Sat, 03 Oct 2026 21:32:22 GMT', 'age': '760', 'date': 'Sat, 03 Oct 2026 21:45:03 GMT', 'server': 'nginx/1.18.0 (Ubuntu)'}`
 - `meta.updated_at`: `2026-10-03T19:21:14Z` · unidades: `{'air_pressure_at_sea_level': 'hPa', 'air_temperature': 'celsius', 'cloud_area_fraction': '%', 'precipitation_amount': 'mm', 'relative_humidity': '%', 'wind_from_direction': 'degrees', 'wind_speed': 'm/s'}`
 - `geometry.coordinates`: `[-57.8279, -34.8892, 4]`
 - Pasos en `timeseries`: 90 (desde `2026-10-03T21:00:00Z` hasta `2026-10-13T00:00:00Z`)
@@ -113,12 +113,12 @@ Ejemplo concreto (convención de intervalos):
 ```
 → `next_1_hours.precipitation_amount` en `time=t` es la lluvia de **[t, t+1h)** (hora que empieza).
 
-- Repetición con `If-Modified-Since: Sat, 03 Oct 2026 21:32:22 GMT` → HTTP **304** (0 bytes, 1.6 s), Expires=`Sat, 03 Oct 2026 22:04:15 GMT`
+- Repetición con `If-Modified-Since: Sat, 03 Oct 2026 21:32:22 GMT` → HTTP **304** (0 bytes, 0.4 s), Expires=`Sat, 03 Oct 2026 22:04:15 GMT`
 
 ## C — Alertas SMN (CAP)
 
-- Feed `https://ssl.smn.gob.ar/CAP/AR.php` → HTTP **200** en 1.0 s, 41066 bytes, url final `https://ssl.smn.gob.ar/CAP/AR.php`
-- Cabeceras: `{'content-type': 'application/rss+xml; charset=UTF-8', 'server': 'cloudflare', 'cf-ray': 'a44f0f2de976ddab-DFW', 'date': 'Sat, 03 Oct 2026 21:32:25 GMT', 'last-modified': None}`
+- Feed `https://ssl.smn.gob.ar/CAP/AR.php` → HTTP **200** en 0.4 s, 41066 bytes, url final `https://ssl.smn.gob.ar/CAP/AR.php`
+- Cabeceras: `{'content-type': 'application/rss+xml; charset=UTF-8', 'server': 'cloudflare', 'cf-ray': 'a44f21b968976cf9-IAD', 'date': 'Sat, 03 Oct 2026 21:45:04 GMT', 'last-modified': None}`
 - Raíz: `rss`
 - Ítems en el feed: **68**
 - Estructura del primer ítem:
@@ -129,21 +129,19 @@ description: Afectando parcialmente los siguientes Partidos y Departamentos: FOR
 guid: https://ssl.smn.gob.ar/feeds/CAP/avisocortoplazo/2026_10_03_2116_cap_es.xml
 pubDate: 
 ```
-- CAP 1 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.16.00` sent=`2026-10-03T21:16:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:16:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - PIRANE.  (1 polígonos)']` **contiene el apiario: no**
-- CAP 2 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.20.00` sent=`2026-10-03T21:20:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:20:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y RAFAGAS', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['CHACO:  GRAL DONOVAN - 1 DE MAYO - BERMEJO - LIBERTAD - SAN  (1 polígonos)']` **contiene el apiario: no**
-- CAP 3 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.28.00` sent=`2026-10-03T21:28:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:28:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - PILCOMAYO.  (1 polígonos)']` **contiene el apiario: no**
-- CAP 4 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.29.00` sent=`2026-10-03T20:29:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:29:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['CHACO: 25 DE MAYO - MAYOR L.  J.  FONTANA - O HIGGINS - SAN  (1 polígonos)']` **contiene el apiario: no**
-- CAP 5 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.14.00` sent=`2026-10-03T20:14:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:14:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['MISIONES: 25 DE MAYO - CAINGUAS - CANDELARIA - LEANDRO N.  A (1 polígonos)']` **contiene el apiario: no**
-- CAP 6 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.33.00` sent=`2026-10-03T20:33:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:33:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - LAISHI.  (1 polígonos)']` **contiene el apiario: no**
-- CAP 7 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.04.00` sent=`2026-10-03T21:04:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:04:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['MISIONES: 25 DE MAYO - CAINGUAS - GUARANI - LDOR GRAL SAN MA (1 polígonos)']` **contiene el apiario: no**
-- CAP 8 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.12.00` sent=`2026-10-03T21:12:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:12:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - LAISHI.  (1 polígonos)']` **contiene el apiario: no**
-- CAP 9 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.07.00` sent=`2026-10-03T20:07:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:07:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: PATINO. CHACO: GRAL GUEMES - LDOR GRAL S.  MARTIN.  (1 polígonos)']` **contiene el apiario: no**
-- CAP 10 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.11.00` sent=`2026-10-03T20:11:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:11:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['CHACO: SAN FERNANDO - TAPENAGA. SANTA FE: GRAL OBLIGADO - VE (1 polígonos)']` **contiene el apiario: no**
-- CAP 11 (0.8 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.8` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-04T14:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
-- CAP 12 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.7` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
-- CAP 13 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.50.2` sent=`2026-10-03T20:39:50-03:00` infos=1 campos=`{'event': 'Viento', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:50-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Viento', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
-- CAP 14 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.6` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
-- CAP 15 (0.3 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.50.1` sent=`2026-10-03T20:39:50-03:00` infos=1 campos=`{'event': 'Viento', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:50-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Viento', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- Ítems por tipo: `{'avisocortoplazo': 10, 'xml_generados': 58}`
+- CAP 1 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.16.00` sent=`2026-10-03T21:16:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:16:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - PIRANE.  (1 polígonos)']` **contiene el apiario: no**
+- CAP 2 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.20.00` sent=`2026-10-03T21:20:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:20:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y RAFAGAS', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['CHACO:  GRAL DONOVAN - 1 DE MAYO - BERMEJO - LIBERTAD - SAN  (1 polígonos)']` **contiene el apiario: no**
+- CAP 3 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.21.28.00` sent=`2026-10-03T21:28:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:28:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - PILCOMAYO.  (1 polígonos)']` **contiene el apiario: no**
+- CAP 4 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.29.00` sent=`2026-10-03T20:29:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:29:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['CHACO: 25 DE MAYO - MAYOR L.  J.  FONTANA - O HIGGINS - SAN  (1 polígonos)']` **contiene el apiario: no**
+- CAP 5 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.14.00` sent=`2026-10-03T20:14:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:14:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y OCASIONAL CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['MISIONES: 25 DE MAYO - CAINGUAS - CANDELARIA - LEANDRO N.  A (1 polígonos)']` **contiene el apiario: no**
+- CAP 6 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.33.00` sent=`2026-10-03T20:33:00-03:00` infos=1 campos=`{'event': 'TORMENTAS FUERTES', 'severity': 'Severe', 'urgency': 'Immediate', 'certainty': 'Observed', 'onset': '', 'effective': '', 'expires': '2026-10-03T22:33:00-03:00', 'headline': 'AVISO NARANJA POR TORMENTAS FUERTES CON LLUVIAS INTENSAS, RAFAGAS Y CAIDA DE GRANIZO', 'senderName': 'SERVICIO METEOROLOGICO NACIONAL - ARGENTINA'}` áreas=`['FORMOSA: FORMOSA - LAISHI.  (1 polígonos)']` **contiene el apiario: no**
+- CAP 7 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.8` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-04T14:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- CAP 8 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.7` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- CAP 9 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.50.2` sent=`2026-10-03T20:39:50-03:00` infos=1 campos=`{'event': 'Viento', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:50-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Viento', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- CAP 10 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.6` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:52-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- CAP 11 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.50.1` sent=`2026-10-03T20:39:50-03:00` infos=1 campos=`{'event': 'Viento', 'severity': 'Moderate', 'urgency': 'Immediate', 'certainty': 'Likely', 'onset': '2026-10-03T20:39:50-03:00', 'effective': '', 'expires': '2026-10-03T20:59:59-03:00', 'headline': 'Viento', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
+- CAP 12 (0.2 s): identifier=`urn:oid:2.49.0.1.32.0.2026.10.03.20.39.52.9` sent=`2026-10-03T20:39:52-03:00` infos=1 campos=`{'event': 'Nevadas', 'severity': 'Moderate', 'urgency': 'Future', 'certainty': 'Likely', 'onset': '2026-10-06T09:00:00-03:00', 'effective': '', 'expires': '2026-10-06T14:59:59-03:00', 'headline': 'Nevadas', 'senderName': 'Servicio Meteorologico Nacional'}` áreas=`[' (1 polígonos)']` **contiene el apiario: no**
 
 ## D — Open-Meteo
 
