@@ -67,7 +67,7 @@ jobs:
               --salida "$resultado"
             if [ "$(jq -r .cambios "$resultado")" != "true" ]; then guardado=true; break; fi
             git add datos/visitas.yaml
-            git commit -q -m "feat(visitas): $(jq -r .visita_id "$resultado") desde el issue #$NUMERO"
+            git commit -q -m "feat(visitas): $(jq -r .accion "$resultado") $(jq -r .visita_id "$resultado") (issue #$NUMERO)"
             if git push -q origin HEAD:main; then guardado=true; break; fi
             echo "main cambió mientras tanto: se reintenta sobre la última versión"
             sleep $((intento * 3))

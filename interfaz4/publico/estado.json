@@ -39,44 +39,5 @@
   "correo": true,
   "google_chat": false
  },
- "visitas": [
-  {
-   "id": "2026-10-10-produccion_miel-01",
-   "apiario": "produccion_miel",
-   "fecha": "2026-10-10",
-   "desde": "09:00",
-   "hasta": "13:00",
-   "inicio": "2026-10-10T09:00-03:00",
-   "fin": "2026-10-10T13:00-03:00",
-   "responsable": "Prueba de Claude (se cancela enseguida)",
-   "notas": "Prueba automática del registro por issues; esta visita se cancela a continuación.",
-   "estado": "cancelada",
-   "origen": "issue #4",
-   "canales": [
-    "correo"
-   ],
-   "hitos": [
-    {
-     "horas": 24,
-     "programado": "2026-10-09T09:00-03:00",
-     "estado": "pendiente",
-     "momento": null,
-     "canales": {},
-     "errores": null,
-     "detalle": null,
-     "informe": null
-    },
-    {
-     "horas": 12,
-     "programado": "2026-10-09T21:00-03:00",
-     "estado": "pendiente",
-     "momento": null,
-     "canales": {},
-     "errores": null,
-     "detalle": null,
-     "informe": null
-    }
-   ]
-  }
- ]
+ "visitas": []
 }

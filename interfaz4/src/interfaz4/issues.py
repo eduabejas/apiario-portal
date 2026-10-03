@@ -33,6 +33,7 @@ MAX_CUERPO = 20_000
 @dataclass
 class ResultadoIssue:
     procesado: bool  # False = no es un issue de Interfaz 4 (se ignora sin comentar)
+    accion: str | None = None  # "registrar" | "cancelar"
     ok: bool = False
     cambios: bool = False  # se modificó datos/visitas.yaml
     cerrar: bool = False
@@ -122,9 +123,11 @@ def procesar_evento(config: Config, evento: dict, ahora: datetime) -> ResultadoI
     if tipo is None or (issue.get("state") or "open") != "open":
         return ResultadoIssue(procesado=False)
     numero = issue.get("number")
+    accion = "registrar" if tipo == "visita" else "cancelar"
     if (issue.get("author_association") or "").upper() not in ASOCIACIONES_PERMITIDAS:
         return ResultadoIssue(
             procesado=True,
+            accion=accion,
             cerrar=True,
             comentario=(
                 "Este formulario agenda envíos de correo del motor de Interfaz 4, así que solo se aceptan "
@@ -140,6 +143,7 @@ def procesar_evento(config: Config, evento: dict, ahora: datetime) -> ResultadoI
             if existente:
                 return ResultadoIssue(
                     procesado=True,
+                    accion=accion,
                     ok=True,
                     cerrar=True,
                     visita_id=existente.id,
@@ -175,13 +179,16 @@ def procesar_evento(config: Config, evento: dict, ahora: datetime) -> ResultadoI
                     f"\"Interfaz 4 · Cancelar visita\" con el id `{visita.id}`.",
                 ]
             )
-            return ResultadoIssue(procesado=True, ok=True, cambios=True, cerrar=True, comentario=comentario, visita_id=visita.id)
+            return ResultadoIssue(
+                procesado=True, accion=accion, ok=True, cambios=True, cerrar=True, comentario=comentario, visita_id=visita.id
+            )
         visita_id = (campos.get("visita") or campos.get("id") or "").strip().strip("`")
         if not visita_id:
             raise ErrorVisitas("falta el id de la visita a cancelar")
         visita = repo.cancelar(visita_id)
         return ResultadoIssue(
             procesado=True,
+            accion=accion,
             ok=True,
             cambios=True,
             cerrar=True,
@@ -191,6 +198,7 @@ def procesar_evento(config: Config, evento: dict, ahora: datetime) -> ResultadoI
     except ErrorVisitas as e:
         return ResultadoIssue(
             procesado=True,
+            accion=accion,
             ok=False,
             comentario=(
                 f"⚠️ **No se pudo procesar:** {e}\n\n"

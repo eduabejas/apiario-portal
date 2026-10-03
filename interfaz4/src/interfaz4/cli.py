@@ -265,6 +265,7 @@ def procesar_issue(
         comentario.write_text(resultado.comentario + "\n", encoding="utf-8")
     info = {
         "procesado": resultado.procesado,
+        "accion": resultado.accion,
         "ok": resultado.ok,
         "cambios": resultado.cambios,
         "cerrar": resultado.cerrar,
