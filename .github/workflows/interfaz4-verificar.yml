@@ -12,6 +12,7 @@ on:
     branches: ['claude/**']
     paths:
       - 'interfaz4/scripts/verificar_fuentes.py'
+      - 'interfaz4/scripts/informe_en_vivo.py'
       - '.github/workflows/interfaz4-verificar.yml'
 
 permissions:
@@ -47,6 +48,11 @@ jobs:
         env:
           METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
         run: uv run python scripts/verificar_fuentes.py
+
+      - name: Informe en vivo (no se envía)
+        env:
+          METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
+        run: uv run python scripts/informe_en_vivo.py
 
       - name: Subir reporte y respuestas
         uses: actions/upload-artifact@v4
