@@ -2,7 +2,7 @@ name: Interfaz 4 — verificación de fuentes
 
 # Fase 0 (y chequeo manual posterior): consulta cada fuente desde el entorno
 # real de ejecución (GitHub Actions), guarda respuestas en
-# interfaz4/tests/fixtures/ y deja el reporte en
+# interfaz4/tests/fixtures/ultima_verificacion/ y deja el reporte en
 # interfaz4/docs/verificacion_fuentes_ejecucion.md. En ramas de trabajo
 # commitea esos archivos a la misma rama; en main solo los sube como artefacto.
 
@@ -54,14 +54,14 @@ jobs:
           name: verificacion-fuentes
           path: |
             interfaz4/docs/verificacion_fuentes_ejecucion.md
-            interfaz4/tests/fixtures/
+            interfaz4/tests/fixtures/ultima_verificacion/
 
       - name: Guardar en la rama de trabajo
         if: github.ref != 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/verificacion_fuentes_ejecucion.md tests/fixtures
+          git add docs/verificacion_fuentes_ejecucion.md tests/fixtures/ultima_verificacion
           if git diff --cached --quiet; then
             echo "Sin cambios para guardar."
             exit 0

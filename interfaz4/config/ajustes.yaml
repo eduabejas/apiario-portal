@@ -1,0 +1,20 @@
+hitos_horas: [24, 12]          # informes antes del inicio de la visita
+unidades:
+  viento: kmh                  # km/h
+  temperatura: C
+fuentes:
+  smn_wrf:     { habilitada: true }
+  metno:       { habilitada: true }
+  smn_cap:     { habilitada: true }
+  open_meteo:  { habilitada: false }   # solo uso no comercial; apagada por decisión del usuario (03/10/2026)
+  ecmwf_ens:   { habilitada: false }   # Fase 7: % de miembros del ensamble con lluvia
+canales:
+  correo:      { habilitado: true }
+  google_chat: { habilitado: false }   # requiere Google Workspace con webhooks entrantes
+informe:
+  incluir_tramo_previo: true   # lluvia acumulada desde el envío hasta el inicio de la visita
+  incluir_comparacion_24_12: true
+reintentos:
+  http_intentos: 3
+  http_backoff_seg: [2, 5, 15]
+  timeout_seg: 30

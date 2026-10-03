@@ -1,0 +1,5 @@
+# Visitas registradas (hora local de Argentina). Se agregan desde Interfaz 4
+# (issue de GitHub), con la CLI (`interfaz4 planificar ...`) o editando este
+# archivo. El repo es público: no pongas correos acá; se resuelven desde los
+# secretos CORREOS_RESPONSABLES / CORREO_DESTINO_POR_DEFECTO.
+visitas: []

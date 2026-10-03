@@ -1,0 +1,18 @@
+# Apiarios que conoce el motor. La clave (p. ej. produccion_miel) es el
+# identificador que usan las visitas, la CLI y el formulario de Interfaz 4.
+zona_horaria: America/Argentina/Buenos_Aires
+apiarios:
+  produccion_miel:
+    nombre: "Apiario de producción melífera"
+    localidad: "Berisso, Buenos Aires"
+    lat: -34.889180362505506
+    lon: -57.82789829443907
+
+  # El apiario de cría de reinas es parte de otro proyecto que empieza en 2027
+  # (decisión del 03/10/2026). Cuando arranque, descomentar, confirmar la
+  # coordenada y agregar la opción en .github/ISSUE_TEMPLATE/interfaz4-visita.yml.
+  # cria_reinas:
+  #   nombre: "Apiario de cría de reinas"
+  #   localidad: "Berisso, Buenos Aires"
+  #   lat: -34.889180362505506
+  #   lon: -57.82789829443907

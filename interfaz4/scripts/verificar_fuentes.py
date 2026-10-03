@@ -2,8 +2,9 @@
 """Fase 0 — verificación de fuentes (spike, sin código de producción).
 
 Para la coordenada del apiario, consulta cada fuente habilitada, guarda
-respuestas reales en tests/fixtures/ y escribe un reporte en Markdown con lo
-observado (variables, convenciones de intervalos, bytes, tiempos, bloqueos).
+respuestas reales en tests/fixtures/ultima_verificacion/ y escribe un reporte
+en Markdown con lo observado (variables, convenciones de intervalos, bytes,
+tiempos, bloqueos). Los tests usan copias congeladas en tests/fixtures/.
 
 Uso (desde interfaz4/):
     uv run python scripts/verificar_fuentes.py
@@ -369,11 +370,20 @@ def verificar_smn_cap(r: Reporte, fixtures: Path) -> None:
         r("- Estructura del primer ítem:")
         r.bloque("\n".join(f"{h.tag}: {(h.text or '').strip()[:160]}" for h in primero), "text")
     punto = Point(LON, LAT)
-    guardados = 0
-    for i, item in enumerate(items[:15]):
+    # Se revisan los primeros de cada tipo (avisos a corto plazo y alertas) y se
+    # guarda una muestra de cada uno, más cualquiera que contenga al apiario.
+    por_tipo: dict[str, list] = {}
+    for item in items:
+        enlace_ = (item.findtext("link") or "").strip()
+        por_tipo.setdefault(enlace_.rstrip("/").split("/")[-2] if enlace_ else "", []).append(item)
+    r(f"- Ítems por tipo: `{ {k: len(v) for k, v in por_tipo.items()} }`")
+    muestra = [it for lista in por_tipo.values() for it in lista[:6]]
+    guardados: set[str] = set()
+    for i, item in enumerate(muestra):
         enlace = (item.findtext("link") or "").strip()
         if not enlace:
             continue
+        tipo = enlace.rstrip("/").split("/")[-2]
         t0 = time.time()
         rc = httpx.get(enlace, headers={"User-Agent": ua()}, timeout=30, follow_redirects=True)
         if _parece_challenge(rc) or rc.status_code != 200:
@@ -406,9 +416,9 @@ def verificar_smn_cap(r: Reporte, fixtures: Path) -> None:
                 f"sent=`{alerta.findtext('cap:sent', namespaces=CAP_NS)}` infos={len(infos)} "
                 f"campos=`{campos}` áreas=`{resumen_areas[:3]}` **contiene el apiario: {'sí' if contiene else 'no'}**"
             )
-        if guardados < 3 or contiene:
-            (fixtures / f"smn_cap_alerta_{i + 1:02d}.xml").write_bytes(rc.content)
-            guardados += 1
+        if tipo not in guardados or contiene:
+            (fixtures / f"smn_cap_{tipo}_{i + 1:02d}.xml").write_bytes(rc.content)
+            guardados.add(tipo)
     r()
 
 
@@ -449,7 +459,7 @@ def main() -> int:
     ap.add_argument("--fuentes", default="smn_wrf,metno,smn_cap")
     ap.add_argument("--open-meteo", action="store_true", help="consultar Open-Meteo (requiere autorización del usuario)")
     ap.add_argument("--docs", default=str(BASE / "docs" / "verificacion_fuentes_ejecucion.md"))
-    ap.add_argument("--fixtures", default=str(BASE / "tests" / "fixtures"))
+    ap.add_argument("--fixtures", default=str(BASE / "tests" / "fixtures" / "ultima_verificacion"))
     args = ap.parse_args()
 
     fixtures = Path(args.fixtures)
