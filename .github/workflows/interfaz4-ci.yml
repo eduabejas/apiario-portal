@@ -1,0 +1,55 @@
+name: Interfaz 4 — tests
+
+on:
+  push:
+    paths:
+      - 'interfaz4/**'
+      - '!interfaz4/state/**'
+      - '!interfaz4/datos/**'
+      - '!interfaz4/publico/**'
+      - 'interfaz4.html'
+      - 'assets/js/interfaz4*.js'
+      - 'tests/**'
+      - '.github/workflows/interfaz4*.yml'
+  pull_request:
+    paths:
+      - 'interfaz4/**'
+      - 'interfaz4.html'
+      - 'assets/js/interfaz4*.js'
+      - 'tests/**'
+      - '.github/workflows/interfaz4*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: interfaz4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: interfaz4/uv.lock
+      - run: uv sync --frozen
+      - name: pytest
+        run: uv run pytest --cov=interfaz4 --cov-report=term
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: node --test
+        run: node --test tests/*.test.js

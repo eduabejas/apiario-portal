@@ -1,0 +1,58 @@
+name: "🐝 Interfaz 4 · Nueva visita"
+description: "Registrar una visita a un apiario para recibir el contexto meteorológico 24 h y 12 h antes, por correo."
+title: "Interfaz 4 · Visita "
+labels: ["interfaz4-visita"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lo más cómodo es cargar la visita desde **[Interfaz 4](https://eduabejas.github.io/apiario-portal/interfaz4.html)**, que completa este formulario por vos.
+        Al crear el issue, en un minuto el motor agenda la visita, responde acá con los horarios de los informes y cierra el issue.
+        Solo se aceptan issues de la cuenta dueña del repositorio o de colaboradores. **El repositorio es público:** no escribas datos sensibles.
+  - type: dropdown
+    id: apiario
+    attributes:
+      label: Apiario
+      options:
+        - "produccion_miel — Apiario de producción melífera"
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: fecha
+    attributes:
+      label: "Fecha (AAAA-MM-DD)"
+      placeholder: "2026-10-10"
+    validations:
+      required: true
+  - type: input
+    id: desde
+    attributes:
+      label: "Desde (HH:MM, hora Argentina)"
+      placeholder: "09:00"
+    validations:
+      required: true
+  - type: input
+    id: hasta
+    attributes:
+      label: "Hasta (HH:MM, hora Argentina)"
+      placeholder: "13:00"
+    validations:
+      required: true
+  - type: input
+    id: responsable
+    attributes:
+      label: "Responsable"
+      placeholder: "Nombre Apellido"
+  - type: textarea
+    id: notas
+    attributes:
+      label: "Notas (opcional)"
+      description: "Se muestran textuales en el informe."
+  - type: checkboxes
+    id: canales
+    attributes:
+      label: "Canales"
+      description: "El informe siempre llega por correo."
+      options:
+        - label: "También por Google Chat (requiere Google Workspace con webhooks habilitados)"

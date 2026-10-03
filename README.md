@@ -9,11 +9,14 @@ enrutamiento y las reglas de diseño.
 - `interfaz1.html` — terreno 3D + vista satelital con simulador de crecida
 - `interfaz2.html` / `interfaz3.html` — placeholders (datos/precios y
   bitácora de colmenas)
+- `interfaz4.html` — contexto meteorológico de visitas: registrar visitas y
+  ver los informes que el motor ([`interfaz4/`](interfaz4/README.md), Python
+  en GitHub Actions) envía por correo 24 h y 12 h antes
 - `assets/` — CSS compilado, Alpine.js, datos y media
 
 **Deploy:** cada push a `main` que toque `index.html`, `interfaz*.html` o
 `assets/**` corre `.github/workflows/pages.yml` y publica en GitHub
-Pages. Para regenerar el CSS tras tocar clases: `npm install && npm run
+Pages (<https://eduabejas.github.io/apiario-portal/>). Para regenerar el CSS tras tocar clases: `npm install && npm run
 build:css`.
 
 **Origen Apps Script:** el código de la versión anterior (Google Apps

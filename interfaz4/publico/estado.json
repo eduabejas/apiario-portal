@@ -1,0 +1,43 @@
+{
+ "version": 1,
+ "zona_horaria": "America/Argentina/Buenos_Aires",
+ "hitos_horas": [
+  24,
+  12
+ ],
+ "apiarios": {
+  "produccion_miel": {
+   "nombre": "Apiario de producción melífera",
+   "localidad": "Berisso, Buenos Aires",
+   "lat": -34.8892,
+   "lon": -57.8279
+  }
+ },
+ "fuentes": {
+  "smn_wrf": {
+   "nombre": "SMN WRF",
+   "habilitada": true
+  },
+  "metno": {
+   "nombre": "MET Norway",
+   "habilitada": true
+  },
+  "smn_cap": {
+   "nombre": "Alertas SMN",
+   "habilitada": true
+  },
+  "open_meteo": {
+   "nombre": "Open-Meteo",
+   "habilitada": false
+  },
+  "ecmwf_ens": {
+   "nombre": "ECMWF ENS",
+   "habilitada": false
+  }
+ },
+ "canales": {
+  "correo": true,
+  "google_chat": false
+ },
+ "visitas": []
+}

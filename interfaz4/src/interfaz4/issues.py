@@ -86,19 +86,19 @@ def tipo_de_issue(issue: dict) -> str | None:
 
 
 def agenda_de_informes(config: Config, visita: Visita, ahora: datetime) -> list[str]:
+    """Misma regla que el planificador: de los hitos ya vencidos sale solo el
+    más cercano al inicio (enseguida) y los anteriores se omiten."""
+    vencidos = [h for h in config.ajustes.hitos_horas if momento_hito(visita.inicio, h) <= ahora]
+    inmediato = min(vencidos) if vencidos else None
     lineas = []
     for h in config.ajustes.hitos_horas:
         momento = momento_hito(visita.inicio, h)
         if momento > ahora:
             lineas.append(f"- Informe {h} h: aprox. {tiempo.fmt_momento(momento)} (en la primera ejecución horaria posterior)")
+        elif h == inmediato:
+            lineas.append(f"- Informe {h} h: su momento ya pasó; sale en la próxima ejecución del motor (en unos minutos)")
         else:
-            lineas.append(f"- Informe {h} h: ese momento ya pasó")
-    vencidos = [h for h in config.ajustes.hitos_horas if momento_hito(visita.inicio, h) <= ahora]
-    if vencidos:
-        lineas.append(
-            f"- Como la visita es en menos de {max(vencidos)} h, se envía solo el informe de {min(vencidos)} h "
-            "en la próxima ejecución del motor."
-        )
+            lineas.append(f"- Informe {h} h: no se envía (su momento ya pasó y sale el de {inmediato} h)")
     return lineas
 
 

@@ -1,0 +1,90 @@
+name: Interfaz 4 — registro de visitas (issues)
+
+# Ida humano → motor: el formulario de Interfaz 4 abre un issue precargado.
+# Este workflow lo valida, agrega la visita a interfaz4/datos/visitas.yaml,
+# responde en el issue con la agenda de informes, lo cierra y dispara el
+# motor. Solo se aceptan issues de la cuenta dueña o de colaboradores.
+# El cuerpo del issue NUNCA se interpola en shell: lo lee Python desde
+# GITHUB_EVENT_PATH.
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: interfaz4-registro-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  registrar:
+    if: >-
+      contains(github.event.issue.labels.*.name, 'interfaz4-visita') ||
+      contains(github.event.issue.labels.*.name, 'interfaz4-cancelar') ||
+      startsWith(github.event.issue.title, 'Interfaz 4 · ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: interfaz4
+    env:
+      NUMERO: ${{ github.event.issue.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: interfaz4/uv.lock
+
+      - name: Instalar dependencias
+        run: uv sync --frozen --no-dev
+
+      - name: Procesar el issue y guardar la visita
+        id: proc
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          resultado="$RUNNER_TEMP/resultado.json"
+          for intento in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            GITHUB_OUTPUT=/dev/null uv run interfaz4 procesar-issue \
+              --evento "$GITHUB_EVENT_PATH" \
+              --comentario "$RUNNER_TEMP/comentario.md" \
+              --salida "$resultado"
+            if [ "$(jq -r .cambios "$resultado")" != "true" ]; then break; fi
+            git add datos/visitas.yaml
+            git commit -q -m "feat(visitas): $(jq -r .visita_id "$resultado") desde el issue #$NUMERO"
+            if git push -q origin HEAD:main; then break; fi
+            echo "main cambió mientras tanto: se reintenta sobre la última versión"
+            sleep $((intento * 3))
+          done
+          for clave in procesado ok cambios cerrar comentar; do
+            echo "$clave=$(jq -r .$clave "$resultado")" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Responder en el issue
+        if: steps.proc.outputs.comentar == 'true'
+        run: gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comentario.md"
+
+      - name: Cerrar el issue
+        if: steps.proc.outputs.cerrar == 'true'
+        run: |
+          if [ "${{ steps.proc.outputs.ok }}" = "true" ]; then razon=completed; else razon="not planned"; fi
+          gh issue close "$NUMERO" --repo "$GITHUB_REPOSITORY" --reason "$razon"
+
+      - name: Disparar el motor (envía si algún hito ya venció y actualiza la web)
+        if: steps.proc.outputs.cambios == 'true'
+        run: gh workflow run interfaz4.yml --repo "$GITHUB_REPOSITORY" --ref main

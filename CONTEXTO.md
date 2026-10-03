@@ -26,6 +26,13 @@ frontend.
 - [ ] Interfaz 2: leer/graficar hojas de `Apiario_DB` (Chart.js)
 - [x] ~~Interfaz 3: formulario de revisión → endpoint `doPost` en Apps Script~~
       (`apps-script/bitacora/Code.gs`, deploy manual — ver pasos del alpha1)
+- [x] `interfaz4.html` — Contexto meteorológico de visitas (ida: formulario →
+      issue de GitHub; vuelta: estado e informes que publica el motor)
+- [x] `interfaz4/` — motor Python (Fases 0–6 de la spec): fuentes SMN WRF,
+      MET Norway y alertas CAP; informes 24 h / 12 h por correo vía
+      GitHub Actions (ver `interfaz4/README.md`)
+- [ ] Interfaz 4: cargar los secretos SMTP en GitHub (paso manual, ver
+      `interfaz4/README.md` → Puesta en marcha)
 
 ---
 
@@ -44,6 +51,8 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── interfaz1.html        # Mapas / terreno 3D / satelital + crecida
 ├── interfaz2.html        # Datos, precios, gráficos (placeholder)
 ├── interfaz3.html        # Bitácora de revisión de colmenas (placeholder)
+├── interfaz4.html        # Contexto meteorológico de visitas (formulario + estado de informes)
+├── interfaz4/            # Motor Python de Interfaz 4 (GitHub Actions, ver su README)
 ├── sw.js                 # Service worker de la bitácora (cache-first solo de su shell)
 ├── manifest.webmanifest  # PWA de la bitácora (start_url interfaz3.html)
 ├── assets/
@@ -55,7 +64,10 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 │   │   ├── topbar.js         # Chip de usuario en interfaz2/3/bitácora
 │   │   ├── bitacora-core.js  # Funciones puras de la bitácora (testeadas con node --test)
 │   │   ├── bitacora.js       # Store Alpine + outbox + fetch + animaciones GSAP
-│   │   └── bitacora-config.js# ENDPOINT y APP_VERSION de la bitácora
+│   │   ├── bitacora-config.js# ENDPOINT y APP_VERSION de la bitácora
+│   │   ├── interfaz4-core.js # Funciones puras de Interfaz 4 (testeadas con node --test)
+│   │   ├── interfaz4.js      # Componente Alpine de Interfaz 4
+│   │   └── interfaz4-config.js # Repo y URLs de datos de Interfaz 4
 │   ├── vendor/
 │   │   ├── gsap.min.js       # GSAP 3, vendorizado (npm run vendor)
 │   │   └── qrcode.js         # qrcode-generator, vendorizado (npm run vendor)
@@ -73,7 +85,11 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── .nojekyll
 ├── .github/workflows/
 │   ├── deploy.yml        # Deploy Apps Script (colmena-portal/** → clasp)
-│   └── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets/sw/manifest → Pages)
+│   ├── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets/sw/manifest → Pages)
+│   ├── interfaz4.yml     # Motor de Interfaz 4 (cada hora)
+│   ├── interfaz4-registro.yml  # Issues "Interfaz 4 · …" → datos/visitas.yaml
+│   ├── interfaz4-ci.yml  # Tests de Interfaz 4 (Python + node --test)
+│   └── interfaz4-verificar.yml # Verificación de fuentes (manual)
 └── colmena-portal/       # Origen Apps Script del portal (ver colmena-portal/README.md)
 ```
 

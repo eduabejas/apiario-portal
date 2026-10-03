@@ -90,8 +90,14 @@ def test_google_chat_marcado(config):
 
 def test_visita_cercana_avisa_que_solo_va_el_de_12(config):
     r = procesar_evento(config, evento(), local("2026-10-09T23:00"))
-    assert "Informe 24 h: ese momento ya pasó" in r.comentario
-    assert "se envía solo el informe de 12 h" in r.comentario
+    assert "Informe 24 h: no se envía (su momento ya pasó y sale el de 12 h)" in r.comentario
+    assert "Informe 12 h: su momento ya pasó; sale en la próxima ejecución del motor" in r.comentario
+
+
+def test_visita_entre_24_y_12_h_manda_ya_el_de_24_y_luego_el_de_12(config):
+    r = procesar_evento(config, evento(), local("2026-10-09T15:00"))
+    assert "Informe 24 h: su momento ya pasó; sale en la próxima ejecución del motor" in r.comentario
+    assert "Informe 12 h: aprox. viernes 09/10/2026 21:00" in r.comentario
 
 
 @pytest.mark.parametrize("asociacion", ["NONE", "CONTRIBUTOR", "FIRST_TIME_CONTRIBUTOR", ""])

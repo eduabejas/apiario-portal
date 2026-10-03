@@ -9,6 +9,7 @@ on:
       - 'assets/**'
       - 'sw.js'
       - 'manifest.webmanifest'
+      - 'interfaz4/publico/**'
       - '.nojekyll'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -35,8 +36,12 @@ jobs:
       - name: Preparar sitio estático
         run: |
           mkdir -p _site
-          cp index.html interfaz1.html interfaz2.html interfaz3.html sw.js manifest.webmanifest .nojekyll _site/
+          cp index.html interfaz1.html interfaz2.html interfaz3.html interfaz4.html sw.js manifest.webmanifest .nojekyll _site/
           cp -r assets _site/assets
+          # Copia de respaldo del estado que publica el motor de Interfaz 4
+          # (la página lo lee primero de raw.githubusercontent.com).
+          mkdir -p _site/interfaz4
+          cp -r interfaz4/publico _site/interfaz4/publico
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5

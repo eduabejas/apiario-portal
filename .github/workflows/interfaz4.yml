@@ -1,0 +1,115 @@
+name: Interfaz 4 — motor de informes
+
+# Cada hora (minuto 17) revisa las visitas: si un hito de 24 h o 12 h está
+# vencido y no se envió, arma el informe y lo manda por correo (y Google
+# Chat si está habilitado). La lógica de "hito vencido y no enviado"
+# absorbe demoras o ejecuciones salteadas del cron de GitHub.
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: 'Qué correr'
+        type: choice
+        options:
+          - ejecutar
+          - probar-fuentes
+        default: ejecutar
+
+permissions:
+  contents: write   # commitear state/, datos/ y publico/
+  issues: write     # crear las etiquetas del formulario de visitas
+  actions: write    # redesplegar Pages cuando cambia publico/
+
+concurrency:
+  group: interfaz4-motor
+  cancel-in-progress: false
+
+jobs:
+  motor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: interfaz4
+    env:
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+      SMTP_CLAVE_APP: ${{ secrets.SMTP_CLAVE_APP }}
+      SMTP_REMITENTE: ${{ secrets.SMTP_REMITENTE }}
+      SMTP_SEGURIDAD: ${{ secrets.SMTP_SEGURIDAD }}
+      CORREO_DESTINO_POR_DEFECTO: ${{ secrets.CORREO_DESTINO_POR_DEFECTO }}
+      CORREOS_RESPONSABLES: ${{ secrets.CORREOS_RESPONSABLES }}
+      GCHAT_WEBHOOK_URL: ${{ secrets.GCHAT_WEBHOOK_URL }}
+      METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: interfaz4/uv.lock
+
+      - name: Instalar dependencias
+        run: uv sync --frozen --no-dev
+
+      - name: Etiquetas del formulario de visitas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create interfaz4-visita --color E8A317 --description "Interfaz 4: registrar visita" --force
+          gh label create interfaz4-cancelar --color B87A00 --description "Interfaz 4: cancelar visita" --force
+
+      - name: Restaurar caché de MET Norway
+        uses: actions/cache/restore@v4
+        with:
+          path: interfaz4/state/cache_metno.json
+          key: metno-${{ github.run_id }}
+          restore-keys: metno-
+
+      - name: Ejecutar motor
+        if: github.event_name != 'workflow_dispatch' || inputs.accion == 'ejecutar'
+        run: uv run interfaz4 -v ejecutar
+
+      - name: Probar fuentes
+        if: github.event_name == 'workflow_dispatch' && inputs.accion == 'probar-fuentes'
+        run: uv run interfaz4 -v probar-fuentes
+
+      - name: Guardar caché de MET Norway
+        if: always() && hashFiles('interfaz4/state/cache_metno.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: interfaz4/state/cache_metno.json
+          key: metno-${{ github.run_id }}
+
+      - name: Commit del estado
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state datos publico
+          if git diff --cached --quiet; then
+            echo "Sin cambios de estado."
+            echo "publico=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --cached --quiet -- publico; then echo "publico=false" >> "$GITHUB_OUTPUT"; else echo "publico=true" >> "$GITHUB_OUTPUT"; fi
+          git commit -m "chore(estado): envíos $(TZ=America/Argentina/Buenos_Aires date '+%Y-%m-%d %H:%M')"
+          for intento in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((intento * 5))
+          done
+          exit 1
+
+      - name: Redesplegar Pages (copia de respaldo de publico/)
+        if: steps.commit.outputs.publico == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
