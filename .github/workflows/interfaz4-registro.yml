@@ -58,19 +58,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           resultado="$RUNNER_TEMP/resultado.json"
+          guardado=false
           for intento in 1 2 3 4 5; do
             git fetch -q origin main && git reset -q --hard origin/main
             GITHUB_OUTPUT=/dev/null uv run interfaz4 procesar-issue \
               --evento "$GITHUB_EVENT_PATH" \
               --comentario "$RUNNER_TEMP/comentario.md" \
               --salida "$resultado"
-            if [ "$(jq -r .cambios "$resultado")" != "true" ]; then break; fi
+            if [ "$(jq -r .cambios "$resultado")" != "true" ]; then guardado=true; break; fi
             git add datos/visitas.yaml
             git commit -q -m "feat(visitas): $(jq -r .visita_id "$resultado") desde el issue #$NUMERO"
-            if git push -q origin HEAD:main; then break; fi
+            if git push -q origin HEAD:main; then guardado=true; break; fi
             echo "main cambió mientras tanto: se reintenta sobre la última versión"
             sleep $((intento * 3))
           done
+          if [ "$guardado" != "true" ]; then
+            echo "::error::No se pudo guardar la visita en main después de 5 intentos"
+            exit 1
+          fi
           for clave in procesado ok cambios cerrar comentar; do
             echo "$clave=$(jq -r .$clave "$resultado")" >> "$GITHUB_OUTPUT"
           done
@@ -84,6 +89,15 @@ jobs:
         run: |
           if [ "${{ steps.proc.outputs.ok }}" = "true" ]; then razon=completed; else razon="not planned"; fi
           gh issue close "$NUMERO" --repo "$GITHUB_REPOSITORY" --reason "$razon"
+
+      - name: Avisar en el issue si algo falló
+        if: failure()
+        run: |
+          printf '%s\n\n%s\n' \
+            "⚠️ **No se pudo procesar este issue** por un error del motor (no por los datos cargados)." \
+            "Detalle de la ejecución: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID — se puede volver a intentar editando el issue." \
+            > "$RUNNER_TEMP/error.md"
+          gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/error.md"
 
       - name: Disparar el motor (envía si algún hito ya venció y actualiza la web)
         if: steps.proc.outputs.cambios == 'true'
