@@ -66,6 +66,7 @@ def test_parsear_formulario():
 def test_registra_visita_desde_issue(config):
     r = procesar_evento(config, evento(), AHORA)
     assert r.procesado and r.ok and r.cambios and r.cerrar
+    assert r.accion == "registrar"
     assert r.visita_id == "2026-10-10-produccion_miel-01"
     [v] = RepositorioYAML(config.rutas.visitas_yaml).listar()
     assert v.origen == "issue #7" and v.canales == ["correo"] and v.notas is None
@@ -136,7 +137,7 @@ def test_cancelar_desde_issue(config):
     procesar_evento(config, evento(), AHORA)
     cuerpo = "### Visita (id)\n\n2026-10-10-produccion_miel-01\n\n### Motivo (opcional)\n\nLluvia\n"
     r = procesar_evento(config, evento(cuerpo, etiquetas=("interfaz4-cancelar",), numero=8, titulo="Interfaz 4 · Cancelar visita"), AHORA)
-    assert r.ok and r.cambios and "Visita cancelada" in r.comentario
+    assert r.ok and r.cambios and r.accion == "cancelar" and "Visita cancelada" in r.comentario
     assert RepositorioYAML(config.rutas.visitas_yaml).obtener("2026-10-10-produccion_miel-01").estado == "cancelada"
     r = procesar_evento(config, evento("### Visita (id)\n\nno-existe\n", etiquetas=("interfaz4-cancelar",), numero=9), AHORA)
     assert not r.ok and "No existe" in r.comentario
@@ -158,4 +159,5 @@ def test_cli_procesar_issue(proyecto, tmp_path, monkeypatch):
     assert "Visita registrada" in comentario.read_text(encoding="utf-8")
     salida = salida_gh.read_text()
     assert "ok=true" in salida and "cambios=true" in salida and "cerrar=true" in salida
+    assert "accion=registrar" in salida
     assert "visita_id=2026-10-10-produccion_miel-01" in salida
