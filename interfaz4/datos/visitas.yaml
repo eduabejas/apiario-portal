@@ -2,4 +2,16 @@
 # (issue de GitHub), con la CLI (`interfaz4 planificar ...`) o editando este
 # archivo. El repo es público: no pongas correos acá; se resuelven desde los
 # secretos CORREOS_RESPONSABLES / CORREO_DESTINO_POR_DEFECTO.
-visitas: []
+visitas:
+- id: 2026-10-10-produccion_miel-01
+  apiario: produccion_miel
+  fecha: '2026-10-10'
+  desde: 09:00
+  hasta: '13:00'
+  responsable: Prueba de Claude (se cancela enseguida)
+  canales:
+  - correo
+  estado: planificada
+  notas: Prueba automática del registro por issues; esta visita se cancela a continuación.
+  origen: 'issue #4'
+  registrada: 2026-10-03T19:17-03:00
