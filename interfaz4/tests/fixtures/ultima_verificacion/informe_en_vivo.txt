@@ -2,7 +2,7 @@
 Apiario de producción melífera · Berisso, Buenos Aires (-34.8892, -57.8279)
 Visita: domingo 04/10/2026 · 09:00–13:00 (hora Argentina)
 Responsable: Prueba automática · Notas: Informe de verificación (no se envía)
-Generado: sábado 03/10/2026 19:11 · Próximo informe: ~21:00 del sábado
+Generado: sábado 03/10/2026 19:20 · Próximo informe: ~21:00 del sábado
 
 ALERTAS SMN
 Sin alertas SMN vigentes para este punto y horario.
@@ -37,8 +37,8 @@ Hora   Temp  HR  Viento  Dir  Ráfaga  Lluvia  Prob.
 (Temp °C · HR % · Viento y ráfaga km/h · Lluvia mm y Prob. % del intervalo [hora, hora+1))
 
 FUENTES Y LICENCIAS
-- SMN WRF: ciclo 03/10 18 UTC · consultado sábado 03/10/2026 19:12
-- MET Norway: actualizado 03/10 19:20 UTC · consultado sábado 03/10/2026 19:12
-- Alertas SMN: consultadas sábado 03/10/2026 19:13
+- SMN WRF: ciclo 03/10 18 UTC · consultado sábado 03/10/2026 19:20
+- MET Norway: actualizado 03/10 19:20 UTC · consultado sábado 03/10/2026 19:20
+- Alertas SMN: consultadas sábado 03/10/2026 19:21
 Pronóstico WRF-SMN © Servicio Meteorológico Nacional (Argentina), CC BY 2.5 AR. Datos de MET Norway (api.met.no), CC BY 4.0. Alertas: Servicio Meteorológico Nacional (CAP), CC BY 4.0.
 Este informe presenta datos de pronóstico sin interpretación. Las decisiones quedan a criterio de quien visita el apiario.
