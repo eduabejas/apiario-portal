@@ -50,7 +50,7 @@
    "fin": "2026-10-10T13:00-03:00",
    "responsable": "Prueba de Claude (se cancela enseguida)",
    "notas": "Prueba automática del registro por issues; esta visita se cancela a continuación.",
-   "estado": "planificada",
+   "estado": "cancelada",
    "origen": "issue #4",
    "canales": [
     "correo"
