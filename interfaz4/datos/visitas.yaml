@@ -11,7 +11,7 @@ visitas:
   responsable: Prueba de Claude (se cancela enseguida)
   canales:
   - correo
-  estado: planificada
+  estado: cancelada
   notas: Prueba automática del registro por issues; esta visita se cancela a continuación.
   origen: 'issue #4'
   registrada: 2026-10-03T19:17-03:00
