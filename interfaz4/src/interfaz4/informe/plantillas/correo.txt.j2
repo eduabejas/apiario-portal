@@ -1,0 +1,64 @@
+🐝 {{ v.titulo }}
+{{ v.apiario_linea }}
+{{ v.visita_linea }}
+{{ v.responsable_linea }}
+{{ v.generado_linea }}
+
+ALERTAS SMN
+{{ v.alertas_mensaje }}
+{% for a in v.alertas %}
+
+- {{ a.titular }}
+  Evento: {{ a.evento }}{% if a.clasificacion %} · {{ a.clasificacion }}{% endif %}
+
+  Vigencia: {{ a.vigencia }}
+{% if a.areas %}
+  Área: {{ a.areas }}
+{% endif %}
+{% if a.descripcion %}
+  {{ a.descripcion | indent(2) }}
+{% endif %}
+{% if a.instruccion %}
+  {{ a.instruccion | indent(2) }}
+{% endif %}
+{% if a.url %}
+  {{ a.url }}
+{% endif %}
+{% endfor %}
+
+RESUMEN DE LA VENTANA
+{{ v.resumen_texto }}
+{% for n in v.notas_resumen %}
+{{ n }}
+{% endfor %}
+{% if v.tramo_titulo %}
+
+{{ v.tramo_titulo }}
+Precipitación total prevista: {{ v.tramo_partes | join(" · ") }}
+{% endif %}
+{% for d in v.detalles %}
+
+{{ d.titulo }}
+{{ v.detalle_texto(d) }}
+{% endfor %}
+(Temp °C · HR % · Viento y ráfaga km/h · Lluvia mm y Prob. % del intervalo [hora, hora+1))
+{% if v.cambios_titulo %}
+
+{{ v.cambios_titulo }}
+{% for c in v.cambios %}
+- {{ c }}
+{% endfor %}
+{% endif %}
+
+FUENTES Y LICENCIAS
+{% for p in v.pie_fuentes %}
+- {{ p }}
+{% endfor %}
+{% if v.avisos %}
+Avisos de esta ejecución:
+{% for a in v.avisos %}
+- {{ a }}
+{% endfor %}
+{% endif %}
+{{ v.atribuciones | join(" ") }}
+{{ v.leyenda }}

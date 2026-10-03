@@ -103,6 +103,8 @@ def parsear_hora(valor: object) -> time:
         return time(valor // 60, valor % 60)
     if isinstance(valor, str):
         partes = valor.strip().split(":")
+        if len(partes) == 3 and partes[2] == "00":  # "09:00:00" (JSON de pydantic)
+            partes = partes[:2]
         if len(partes) == 2 and all(p.isdigit() for p in partes) and len(partes[1]) == 2:
             hh, mm = int(partes[0]), int(partes[1])
             if 0 <= hh < 24 and 0 <= mm < 60:

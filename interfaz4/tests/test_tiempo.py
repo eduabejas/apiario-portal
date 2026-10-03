@@ -63,13 +63,13 @@ def test_parsear_momento():
 
 @pytest.mark.parametrize(
     "valor,esperado",
-    [("09:00", time(9, 0)), ("13:45", time(13, 45)), (780, time(13, 0)), (time(8, 5), time(8, 5))],
+    [("09:00", time(9, 0)), ("13:45", time(13, 45)), ("09:00:00", time(9, 0)), (780, time(13, 0)), (time(8, 5), time(8, 5))],
 )
 def test_parsear_hora(valor, esperado):
     assert tiempo.parsear_hora(valor) == esperado
 
 
-@pytest.mark.parametrize("valor", ["9", "25:00", "09:60", "9:5", "", True, -1, 1440])
+@pytest.mark.parametrize("valor", ["9", "25:00", "09:60", "9:5", "09:00:30", "", True, -1, 1440])
 def test_parsear_hora_invalida(valor):
     with pytest.raises(ValueError):
         tiempo.parsear_hora(valor)

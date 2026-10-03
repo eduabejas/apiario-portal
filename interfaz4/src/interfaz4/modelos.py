@@ -7,7 +7,7 @@ import re
 from datetime import date, datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
 
 from interfaz4 import tiempo
 
@@ -69,6 +69,10 @@ class Visita(BaseModel):
     @classmethod
     def _hora(cls, v: object) -> time:
         return tiempo.parsear_hora(v)
+
+    @field_serializer("desde", "hasta")
+    def _hora_hhmm(self, v: time) -> str:
+        return tiempo.fmt_hora(v)
 
     @field_validator("correo")
     @classmethod
