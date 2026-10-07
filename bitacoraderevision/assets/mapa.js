@@ -11,7 +11,13 @@
 
   // ---- Constantes ----------------------------------------------------------
   const UMBRAL_VARROA = 3.0;            // %
+  const GRILLA = 0.05;                  // m
+  const PASO_ROT = 15;                  // °
+  const IMAN = 0.15;                    // m
   const ZOOM_MIN = 10, ZOOM_MAX = 400;  // px por metro
+  const MAX_HISTORIAL = 100;
+  const LADO_MIN = 0.10, SEGMENTO_MIN = 0.20, LARGO_MAX = 50; // m
+  const DISTANCIA_ASA_ROT = 24;         // px desde el lado -y local
   const ESCALA_CODIGOS = 45;            // px/m desde la que se muestran los códigos
   const ALTO_ETIQUETA = { S: 0.30, M: 0.50, L: 0.80 }; // m
   const LARGOS_ESCALA = [0.2, 0.5, 1, 2, 5, 10, 20];  // m
@@ -30,11 +36,14 @@
     modo: 'ver',                      // 'ver' | 'editar'
     mapa: null,                       // documento vigente (copia de trabajo)
     versionBase: 0,                   // versión del servidor sobre la que se edita
+    seleccion: null,                  // id | null
     vista: { tx: 0, ty: 0, s: 40 },   // translate (px) + escala (px/m)
+    deshacer: [], rehacer: [],        // snapshots JSON (string) del arreglo items
+    ultimoPaso: '[]',                 // snapshot del último paso confirmado
     revisionesPorCodigo: new Map(),   // códigoNormalizado -> revisiones (más reciente primero)
     cargado: false,
     cargando: false,
-    edicionBloqueada: null,           // motivo por el que no se puede editar, o null
+    edicionBloqueada: 'cargando',     // motivo por el que no se puede editar, o null
     ajustarPendiente: true
   };
 
@@ -55,6 +64,21 @@
     capaTextos: $('capaTextos')
   };
   const capaGrilla = $('capaGrilla');
+  const capaSeleccion = $('capaSeleccion');
+  const btnVer = $('mapaModoVer');
+  const btnEditar = $('mapaModoEditar');
+  const historial = $('mapaHistorial');
+  const btnDeshacer = $('mapaDeshacer');
+  const btnRehacer = $('mapaRehacer');
+  const agregarCaja = $('mapaAgregarCaja');
+  const btnAgregar = $('mapaAgregar');
+  const menu = $('mapaMenu');
+  const panelProp = $('mapaPanel');
+  const campos = {
+    codigo: $('mpCodigo'), texto: $('mpTexto'), alias: $('mpAlias'), reina: $('mpReina'),
+    notas: $('mpNotas'), ancho: $('mpAncho'), largo: $('mpLargo'), largoSeg: $('mpLargoSegmento'),
+    rot: $('mpRotacion'), piquera: $('mpPiquera'), tam: $('mpTamano')
+  };
   const estadoEl = $('mapaEstado');
   const tooltip = $('mapaTooltip');
   const escalaSvg = $('mapaEscalaSvg');
@@ -74,6 +98,17 @@
   const normalizar = (s) => String(s == null ? '' : s).trim().toLowerCase();
   const esColmena = (it) => it.tipo === 'colmena' || it.tipo === 'nucleo';
   const coma = (n) => String(n).replace('.', ',');
+  const redondear = (n) => Math.round(n * 1000) / 1000;
+  /** Ajuste a la grilla de 0,05 m (con libre = true, solo redondea al mm). */
+  const ajustarGrilla = (v, libre) => redondear(libre ? v : Math.round(v / GRILLA) * GRILLA);
+  const normalizarAngulo = (a) => {
+    const r = redondear(((a % 360) + 360) % 360);
+    return r >= 360 ? 0 : r;
+  };
+  function nuevoId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
 
   // =========================================================================
   //  Fechas y datos sanitarios
@@ -195,11 +230,14 @@
     return [Math.max(ancho, alto), alto];
   }
 
+  // Esquinas en el marco local: 0 = (-x,-y), 1 = (+x,-y), 2 = (+x,+y), 3 = (-x,+y).
+  const SIGNOS_ESQUINA = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+
   function esquinas(it) {
     const m = medidas(it);
     const a = (it.rot || 0) * Math.PI / 180;
     const c = Math.cos(a), s = Math.sin(a);
-    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map((k) => {
+    return SIGNOS_ESQUINA.map((k) => {
       const lx = k[0] * m[0] / 2, ly = k[1] * m[1] / 2;
       return [it.x + lx * c - ly * s, it.y + lx * s + ly * c];
     });
@@ -297,6 +335,7 @@
     mundo.setAttribute('transform', 'translate(' + v.tx + ' ' + v.ty + ') scale(' + v.s + ')');
     renderGrilla(t);
     renderItems();
+    renderSeleccion();
     renderEscala();
   }
 
@@ -351,12 +390,27 @@
     return { g: g, tipo: it.tipo, partes: p, it: null, s: 0, alerta: false };
   }
 
+  function etiquetaAccesible(it) {
+    const tipo = TIPOS[it.tipo].nombre;
+    if (esColmena(it)) return tipo + ' ' + it.codigo + (it.alias ? ', ' + it.alias : '');
+    if (it.tipo === 'etiqueta') return tipo + ' ' + it.texto;
+    return tipo + (it.alias ? ', ' + it.alias : '');
+  }
+
   function actualizarNodo(n, it, s, alerta) {
     n.it = it;
     n.s = s;
     n.alerta = alerta;
     const p = n.partes;
     n.g.classList.toggle('alerta', alerta);
+    // En modo Editar cada elemento se alcanza con Tab y se selecciona con Enter.
+    if (estado.modo === 'editar') {
+      attr(n.g, { tabindex: '0', role: 'button', 'aria-label': etiquetaAccesible(it) });
+    } else {
+      n.g.removeAttribute('tabindex');
+      n.g.removeAttribute('role');
+      n.g.removeAttribute('aria-label');
+    }
 
     if (TIPOS[it.tipo].segmento) {
       const linea = { x1: it.x1, y1: it.y1, x2: it.x2, y2: it.y2 };
@@ -482,6 +536,328 @@
     escalaTxt.textContent = coma(mejor) + ' m';
   }
 
+  // ---- Selección y asas (en coordenadas de pantalla) ------------------------
+  const punteroGrueso = window.matchMedia('(pointer: coarse)');
+  const radioAsa = () => (punteroGrueso.matches ? 11 : 5);
+
+  /** Dirección (en el mundo) del lado -y local: opuesto a la piquera. */
+  function direccionFrente(it) {
+    const a = (it.rot || 0) * Math.PI / 180;
+    return [Math.sin(a), -Math.cos(a)];
+  }
+
+  /**
+   * Medias medidas en px para ubicar las asas: si el elemento es chico en
+   * pantalla, las asas se separan hacia afuera para no encimarse.
+   */
+  function mediasAsas(it) {
+    const m = medidas(it), s = estado.vista.s, minimo = radioAsa() + 3;
+    return [Math.max(m[0] * s / 2, minimo), Math.max(m[1] * s / 2, minimo)];
+  }
+
+  /** Punto de pantalla a (lx, ly) px del centro, en el marco local rotado. */
+  function desdeCentro(it, lx, ly) {
+    const c = aPantalla(it.x, it.y);
+    const a = (it.rot || 0) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+    return [c[0] + lx * cos - ly * sin, c[1] + lx * sin + ly * cos];
+  }
+
+  /** Posición en pantalla del asa de rotación (a 24 px del lado -y local). */
+  function posAsaRot(it) {
+    const mh = mediasAsas(it)[1];
+    const borde = it.tipo === 'etiqueta' ? medidas(it)[1] * estado.vista.s / 2 : mh;
+    return { borde: desdeCentro(it, 0, -borde), asa: desdeCentro(it, 0, -(borde + DISTANCIA_ASA_ROT)) };
+  }
+
+  function renderSeleccion() {
+    while (capaSeleccion.firstChild) capaSeleccion.removeChild(capaSeleccion.firstChild);
+    if (estado.modo !== 'editar' || !estado.seleccion) return;
+    const it = itemPorId(estado.seleccion);
+    if (!it) return;
+    const r = radioAsa();
+    if (TIPOS[it.tipo].segmento) {
+      const a = aPantalla(it.x1, it.y1), b = aPantalla(it.x2, it.y2);
+      const largo = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const media = it.tipo === 'muro' ? 0.1 * estado.vista.s : 0;
+      const off = media + 6;
+      const nx = -(b[1] - a[1]) / largo * off, ny = (b[0] - a[0]) / largo * off;
+      el('polygon', { class: 'sel-contorno', points: [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]].join(' ') }, capaSeleccion);
+      el('circle', { class: 'asa', 'data-asa': 'p1', cx: a[0], cy: a[1], r: r }, capaSeleccion);
+      el('circle', { class: 'asa', 'data-asa': 'p2', cx: b[0], cy: b[1], r: r }, capaSeleccion);
+      return;
+    }
+    const pantalla = esquinas(it).map((p) => aPantalla(p[0], p[1]));
+    el('polygon', { class: 'sel-contorno', points: pantalla.join(' ') }, capaSeleccion);
+    const rot = posAsaRot(it);
+    el('line', { class: 'sel-rot-linea', x1: rot.borde[0], y1: rot.borde[1], x2: rot.asa[0], y2: rot.asa[1] }, capaSeleccion);
+    if (it.tipo !== 'etiqueta') {
+      const medias = mediasAsas(it);
+      SIGNOS_ESQUINA.forEach((sg, i) => {
+        const p = desdeCentro(it, sg[0] * medias[0], sg[1] * medias[1]);
+        el('circle', { class: 'asa', 'data-asa': String(i), cx: p[0], cy: p[1], r: r }, capaSeleccion);
+      });
+    }
+    el('circle', { class: 'asa asa-rot', 'data-asa': 'rot', cx: rot.asa[0], cy: rot.asa[1], r: r + 1 }, capaSeleccion);
+  }
+
+  // =========================================================================
+  //  Edición
+  // =========================================================================
+  function items() {
+    return estado.mapa ? estado.mapa.items : [];
+  }
+  function ponerItems(lista) {
+    estado.mapa = { esquema: 1, unidad: 'm', items: lista };
+  }
+  function reemplazarItem(nuevo) {
+    ponerItems(items().map((it) => (it.id === nuevo.id ? nuevo : it)));
+    pedirRender();
+  }
+  const limitarCoord = (v) => limitar(v, -1000, 1000);
+
+  /** Extremos de muros y vallas (salvo los del elemento `excluirId`). */
+  function extremosDeSegmentos(excluirId) {
+    const lista = [];
+    items().forEach((it) => {
+      if (!TIPOS[it.tipo].segmento || it.id === excluirId) return;
+      lista.push([it.x1, it.y1], [it.x2, it.y2]);
+    });
+    return lista;
+  }
+
+  /** Extremo más cercano a ≤ IMAN de `p`, o null. */
+  function iman(p, excluirId) {
+    let mejor = null, distancia = IMAN + 1e-9;
+    extremosDeSegmentos(excluirId).forEach((e) => {
+      const d = Math.hypot(e[0] - p[0], e[1] - p[1]);
+      if (d <= distancia) { distancia = d; mejor = e; }
+    });
+    return mejor;
+  }
+
+  function moverItem(orig, dx, dy, libre) {
+    if (!TIPOS[orig.tipo].segmento) {
+      return Object.assign({}, orig, {
+        x: limitarCoord(ajustarGrilla(orig.x + dx, libre)),
+        y: limitarCoord(ajustarGrilla(orig.y + dy, libre))
+      });
+    }
+    const vx = orig.x2 - orig.x1, vy = orig.y2 - orig.y1;
+    let x1 = ajustarGrilla(orig.x1 + dx, libre), y1 = ajustarGrilla(orig.y1 + dy, libre);
+    if (!libre) {
+      // Si algún extremo queda cerca de otro muro/valla, se pega todo el segmento.
+      const extremos = [[x1, y1], [x1 + vx, y1 + vy]];
+      let mejor = null;
+      extremos.forEach((e) => {
+        const destino = iman(e, orig.id);
+        if (destino) {
+          const d = Math.hypot(destino[0] - e[0], destino[1] - e[1]);
+          if (!mejor || d < mejor.d) mejor = { d: d, dx: destino[0] - e[0], dy: destino[1] - e[1] };
+        }
+      });
+      if (mejor) { x1 += mejor.dx; y1 += mejor.dy; }
+    }
+    return Object.assign({}, orig, {
+      x1: limitarCoord(redondear(x1)), y1: limitarCoord(redondear(y1)),
+      x2: limitarCoord(redondear(x1 + vx)), y2: limitarCoord(redondear(y1 + vy))
+    });
+  }
+
+  /** Punto del mundo que arrastra cada asa (esquina real o extremo). */
+  function anclaDeAsa(it, asa) {
+    if (asa === 'p1') return [it.x1, it.y1];
+    if (asa === 'p2') return [it.x2, it.y2];
+    if (asa === 'rot') return null;
+    return esquinas(it)[Number(asa)];
+  }
+
+  /** Aplica el arrastre de un asa (esquina 0–3, extremo p1/p2 o rotación). */
+  function aplicarAsa(orig, asa, w, libre) {
+    if (asa === 'rot') {
+      const grados = Math.atan2(w[0] - orig.x, -(w[1] - orig.y)) * 180 / Math.PI;
+      return Object.assign({}, orig, { rot: normalizarAngulo(libre ? grados : Math.round(grados / PASO_ROT) * PASO_ROT) });
+    }
+    if (asa === 'p1' || asa === 'p2') {
+      const fijo = asa === 'p1' ? [orig.x2, orig.y2] : [orig.x1, orig.y1];
+      let p = [ajustarGrilla(w[0], libre), ajustarGrilla(w[1], libre)];
+      if (!libre) {
+        const destino = iman(p, orig.id);
+        if (destino) p = destino.slice();
+      }
+      let dx = p[0] - fijo[0], dy = p[1] - fijo[1];
+      const largo = Math.hypot(dx, dy);
+      if (largo < SEGMENTO_MIN || largo > LARGO_MAX) {
+        const previo = asa === 'p1' ? [orig.x1 - fijo[0], orig.y1 - fijo[1]] : [orig.x2 - fijo[0], orig.y2 - fijo[1]];
+        const base = largo > 1e-9 ? [dx / largo, dy / largo] : [previo[0] / (Math.hypot(previo[0], previo[1]) || 1), previo[1] / (Math.hypot(previo[0], previo[1]) || 1)];
+        const nuevo = limitar(largo, SEGMENTO_MIN, LARGO_MAX);
+        dx = base[0] * nuevo; dy = base[1] * nuevo;
+      }
+      const punto = [limitarCoord(redondear(fijo[0] + dx)), limitarCoord(redondear(fijo[1] + dy))];
+      return Object.assign({}, orig, asa === 'p1' ? { x1: punto[0], y1: punto[1] } : { x2: punto[0], y2: punto[1] });
+    }
+    // Esquina de un rectángulo: la esquina opuesta queda fija.
+    const i = Number(asa);
+    const signo = SIGNOS_ESQUINA[i];
+    const fija = esquinas(orig)[(i + 2) % 4];
+    const a = (orig.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    const rx = w[0] - fija[0], ry = w[1] - fija[1];
+    const lx = rx * c + ry * s, ly = -rx * s + ry * c; // al marco local
+    const lado = (v) => limitar(libre ? redondear(v) : redondear(Math.round(v / GRILLA) * GRILLA), LADO_MIN, LARGO_MAX);
+    const ancho = lado(lx * signo[0]), alto = lado(ly * signo[1]);
+    const cx = signo[0] * ancho / 2, cy = signo[1] * alto / 2;
+    return Object.assign({}, orig, {
+      w: ancho, h: alto,
+      x: limitarCoord(redondear(fija[0] + cx * c - cy * s)),
+      y: limitarCoord(redondear(fija[1] + cx * s + cy * c))
+    });
+  }
+
+  /** Código automático: C-01, C-02… / N-01… (el siguiente al mayor usado). */
+  function siguienteCodigo(tipo) {
+    const prefijo = tipo === 'nucleo' ? 'N-' : 'C-';
+    const patron = new RegExp('^' + prefijo + '(\\d+)$', 'i');
+    let mayor = 0;
+    items().forEach((it) => {
+      const m = esColmena(it) && patron.exec(String(it.codigo).trim());
+      if (m) mayor = Math.max(mayor, parseInt(m[1], 10));
+    });
+    return prefijo + String(mayor + 1).padStart(2, '0');
+  }
+
+  function crear(tipo) {
+    const t = tamLienzo();
+    const centro = aMundo(t.w / 2, t.h / 2);
+    const cx = limitarCoord(ajustarGrilla(centro[0])), cy = limitarCoord(ajustarGrilla(centro[1]));
+    const d = TIPOS[tipo];
+    const it = { id: nuevoId(), tipo: tipo };
+    if (d.segmento) {
+      Object.assign(it, { x1: redondear(cx - d.largo / 2), y1: cy, x2: redondear(cx + d.largo / 2), y2: cy, alias: '' });
+    } else if (tipo === 'etiqueta') {
+      Object.assign(it, { x: cx, y: cy, rot: 0, texto: 'Etiqueta', tam: d.tam });
+    } else {
+      Object.assign(it, { x: cx, y: cy, w: d.w, h: d.h, rot: 0 });
+      if (esColmena(it)) Object.assign(it, { codigo: siguienteCodigo(tipo), alias: '', reina_fecha: '', notas: '' });
+      else it.alias = '';
+    }
+    ponerItems(items().concat([it]));
+    seleccionar(it.id);
+    asegurarVisible();
+    confirmarPaso();
+    actualizarEstadoVacio();
+    if (tipo === 'etiqueta' && !punteroGrueso.matches) {
+      campos.texto.focus();
+      campos.texto.select();
+    }
+  }
+
+  function duplicar(id) {
+    const lista = items();
+    const idx = lista.findIndex((it) => it.id === id);
+    if (idx === -1) return;
+    const copia = moverItem(Object.assign({}, lista[idx], { id: nuevoId() }), 0.5, 0.5, true);
+    if (esColmena(copia)) copia.codigo = siguienteCodigo(copia.tipo);
+    ponerItems(lista.slice(0, idx + 1).concat([copia], lista.slice(idx + 1)));
+    seleccionar(copia.id);
+    asegurarVisible();
+    confirmarPaso();
+  }
+
+  function borrar(id) {
+    ponerItems(items().filter((it) => it.id !== id));
+    if (tooltipId === id) ocultarTooltip();
+    deseleccionar();
+    confirmarPaso();
+    actualizarEstadoVacio();
+  }
+
+  function empujar(dx, dy) {
+    const it = itemPorId(estado.seleccion);
+    if (!it) return;
+    reemplazarItem(moverItem(it, dx, dy, true));
+    confirmarPaso();
+    sincronizarPanel();
+  }
+
+  function seleccionar(id) {
+    estado.seleccion = id;
+    sincronizarPanel();
+    pedirRender();
+  }
+
+  function deseleccionar() {
+    if (!estado.seleccion) return;
+    estado.seleccion = null;
+    sincronizarPanel();
+    pedirRender();
+  }
+
+  /**
+   * Si el panel de propiedades tapa la selección, corre la vista: hacia arriba
+   * cuando es hoja inferior (móvil) y hacia la izquierda cuando es overlay.
+   */
+  function asegurarVisible() {
+    const it = itemPorId(estado.seleccion);
+    if (!it || panelProp.hidden) return;
+    requestAnimationFrame(() => {
+      const actual = itemPorId(estado.seleccion);
+      if (!actual) return;
+      const c = caja(puntosDeItem(actual).map((p) => aPantalla(p[0], p[1])));
+      const margen = 16;
+      if (window.innerWidth < 640) {
+        const limite = cont.clientHeight - panelProp.offsetHeight - margen;
+        if (c.y2 > limite) estado.vista.ty -= c.y2 - limite;
+      } else {
+        const limite = panelProp.offsetLeft - margen;
+        if (c.x2 > limite && c.y1 < panelProp.offsetTop + panelProp.offsetHeight) estado.vista.tx -= c.x2 - limite;
+      }
+      pedirRender();
+    });
+  }
+
+  // ---- Deshacer / rehacer (snapshot al terminar cada gesto) ---------------
+  function snapshot() {
+    return JSON.stringify(items());
+  }
+  function reiniciarHistorial() {
+    estado.deshacer = [];
+    estado.rehacer = [];
+    estado.ultimoPaso = snapshot();
+    actualizarBotonesHistorial();
+  }
+  function confirmarPaso() {
+    const actual = snapshot();
+    if (actual === estado.ultimoPaso) return;
+    estado.deshacer.push(estado.ultimoPaso);
+    if (estado.deshacer.length > MAX_HISTORIAL) estado.deshacer.shift();
+    estado.rehacer = [];
+    estado.ultimoPaso = actual;
+    actualizarBotonesHistorial();
+  }
+  function restaurar(snap) {
+    estado.ultimoPaso = snap;
+    ponerItems(JSON.parse(snap));
+    if (estado.seleccion && !itemPorId(estado.seleccion)) estado.seleccion = null;
+    if (tooltipId && !itemPorId(tooltipId)) ocultarTooltip();
+    sincronizarPanel();
+    actualizarBotonesHistorial();
+    actualizarEstadoVacio();
+    pedirRender();
+  }
+  function deshacer() {
+    if (!estado.deshacer.length) return;
+    estado.rehacer.push(estado.ultimoPaso);
+    restaurar(estado.deshacer.pop());
+  }
+  function rehacer() {
+    if (!estado.rehacer.length) return;
+    estado.deshacer.push(estado.ultimoPaso);
+    restaurar(estado.rehacer.pop());
+  }
+  function actualizarBotonesHistorial() {
+    btnDeshacer.disabled = !estado.deshacer.length;
+    btnRehacer.disabled = !estado.rehacer.length;
+  }
+
   // =========================================================================
   //  Tooltip
   // =========================================================================
@@ -594,6 +970,183 @@
   }
 
   // =========================================================================
+  //  Panel de propiedades
+  // =========================================================================
+  const RUMBOS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+  /** La piquera está en el lado +y local: con rotación r apunta a (180 + r) mod 360. */
+  const rumboPiquera = (rot) => RUMBOS[Math.round(normalizarAngulo(180 + (rot || 0)) / 45) % 8];
+  const dosDecimales = (n) => String(Math.round(n * 100) / 100);
+
+  /** Errores de validación de un elemento: { campo: mensaje }. */
+  function erroresDe(it) {
+    const errores = {};
+    if (esColmena(it)) {
+      const codigo = String(it.codigo || '').trim();
+      if (!codigo) errores.codigo = 'El código es obligatorio.';
+      else {
+        const clave = normalizar(codigo);
+        const repetido = items().some((o) => o.id !== it.id && esColmena(o) && normalizar(o.codigo) === clave);
+        if (repetido) errores.codigo = 'Ya hay otra colmena o núcleo con el código ' + codigo + '.';
+      }
+    }
+    if (it.tipo === 'etiqueta' && !String(it.texto || '').trim()) errores.texto = 'El texto es obligatorio.';
+    return errores;
+  }
+
+  function mostrarError(input, mensaje) {
+    const p = $(input.id + 'Error');
+    input.classList.toggle('invalido', !!mensaje);
+    input.setAttribute('aria-invalid', mensaje ? 'true' : 'false');
+    if (p) { p.textContent = mensaje || ''; p.hidden = !mensaje; }
+  }
+
+  function sincronizarPanel() {
+    const it = estado.modo === 'editar' ? itemPorId(estado.seleccion) : null;
+    if (!it) { panelProp.hidden = true; return; }
+    panelProp.hidden = false;
+    $('mpTitulo').textContent = TIPOS[it.tipo].nombre;
+    panelProp.querySelectorAll('.mp-campo').forEach((c) => {
+      c.hidden = c.getAttribute('data-tipos').split(' ').indexOf(it.tipo) === -1;
+    });
+    const activo = document.activeElement;
+    const poner = (input, valor) => { if (input !== activo) input.value = valor; };
+    if (esColmena(it)) {
+      poner(campos.codigo, it.codigo || '');
+      poner(campos.reina, it.reina_fecha || '');
+      poner(campos.notas, it.notas || '');
+      campos.piquera.value = rumboPiquera(it.rot);
+    }
+    if (it.tipo !== 'etiqueta') poner(campos.alias, it.alias || '');
+    if (it.tipo === 'colmena' || it.tipo === 'nucleo' || it.tipo === 'pallet') {
+      poner(campos.ancho, dosDecimales(it.w));
+      poner(campos.largo, dosDecimales(it.h));
+    }
+    if (TIPOS[it.tipo].segmento) poner(campos.largoSeg, dosDecimales(Math.hypot(it.x2 - it.x1, it.y2 - it.y1)));
+    if (it.rot != null) poner(campos.rot, String(it.rot));
+    if (it.tipo === 'etiqueta') {
+      poner(campos.texto, it.texto || '');
+      poner(campos.tam, it.tam || 'M');
+    }
+    const errores = erroresDe(it);
+    mostrarError(campos.codigo, errores.codigo);
+    mostrarError(campos.texto, errores.texto);
+  }
+
+  /** Aplica `cambios` al elemento seleccionado. `paso`: true = confirma un paso de deshacer. */
+  function editarSeleccion(cambios, paso) {
+    const it = itemPorId(estado.seleccion);
+    if (!it) return;
+    reemplazarItem(Object.assign({}, it, cambios));
+    if (paso) confirmarPaso();
+    sincronizarPanel();
+  }
+
+  function numeroDe(input) {
+    if (input.value.trim() === '' || input.validity.badInput) return null;
+    const n = Number(input.value);
+    return isFinite(n) ? n : null;
+  }
+
+  /** Cambios de un campo numérico, o null si el valor no es válido. */
+  function cambiosNumericos(campo, n) {
+    const it = itemPorId(estado.seleccion);
+    if (!it || n === null) return null;
+    if (campo === 'ancho') return { w: limitar(redondear(n), LADO_MIN, LARGO_MAX) };
+    if (campo === 'largo') return { h: limitar(redondear(n), LADO_MIN, LARGO_MAX) };
+    if (campo === 'rot') return { rot: normalizarAngulo(n) };
+    if (campo === 'largoSeg') {
+      // Mueve el extremo final manteniendo la dirección.
+      const dx = it.x2 - it.x1, dy = it.y2 - it.y1;
+      const actual = Math.hypot(dx, dy);
+      const dir = actual > 1e-9 ? [dx / actual, dy / actual] : [1, 0];
+      const largo = limitar(n, SEGMENTO_MIN, LARGO_MAX);
+      return { x2: limitarCoord(redondear(it.x1 + dir[0] * largo)), y2: limitarCoord(redondear(it.y1 + dir[1] * largo)) };
+    }
+    return null;
+  }
+
+  // Texto: cada tecla actualiza el plano; el paso de deshacer se confirma al salir del campo.
+  [['codigo', 'codigo'], ['texto', 'texto'], ['alias', 'alias'], ['notas', 'notas']].forEach((par) => {
+    const input = campos[par[0]];
+    input.addEventListener('input', () => editarSeleccion({ [par[1]]: input.value }, false));
+    input.addEventListener('change', () => editarSeleccion({ [par[1]]: input.value.trim() }, true));
+  });
+  campos.reina.addEventListener('change', () => editarSeleccion({ reina_fecha: campos.reina.value || '' }, true));
+  campos.tam.addEventListener('change', () => editarSeleccion({ tam: campos.tam.value }, true));
+  [['ancho', campos.ancho], ['largo', campos.largo], ['rot', campos.rot], ['largoSeg', campos.largoSeg]].forEach((par) => {
+    const input = par[1];
+    input.addEventListener('input', () => {
+      const cambios = cambiosNumericos(par[0], numeroDe(input));
+      if (cambios) editarSeleccion(cambios, false);
+    });
+    input.addEventListener('change', () => {
+      const cambios = cambiosNumericos(par[0], numeroDe(input));
+      if (cambios) editarSeleccion(cambios, true);
+      // Valor inválido o fuera de rango: se vuelve a mostrar el valor real.
+      if (document.activeElement === input) input.blur();
+      sincronizarPanel();
+    });
+  });
+
+  $('mpCerrar').addEventListener('click', deseleccionar);
+  $('mpDuplicar').addEventListener('click', () => { if (estado.seleccion) duplicar(estado.seleccion); });
+  $('mpEliminar').addEventListener('click', () => { if (estado.seleccion) borrar(estado.seleccion); });
+
+  // =========================================================================
+  //  Modo Ver / Editar y menú «+»
+  // =========================================================================
+  function ponerModo(modo) {
+    if (modo === 'editar' && estado.edicionBloqueada) return;
+    estado.modo = modo;
+    const editando = modo === 'editar';
+    btnVer.setAttribute('aria-pressed', editando ? 'false' : 'true');
+    btnEditar.setAttribute('aria-pressed', editando ? 'true' : 'false');
+    historial.hidden = !editando;
+    agregarCaja.hidden = !editando;
+    svg.classList.toggle('editando', editando);
+    if (!editando) {
+      cerrarMenu();
+      estado.seleccion = null;
+    }
+    nodos.forEach((n) => { n.it = null; }); // tabindex / aria-label según el modo
+    sincronizarPanel();
+    actualizarEstadoVacio();
+    pedirRender();
+  }
+
+  function actualizarDisponibilidadEdicion() {
+    btnEditar.disabled = !!estado.edicionBloqueada;
+    btnEditar.title = estado.edicionBloqueada ? 'No disponible hasta que el mapa cargue desde el servidor' : '';
+    if (estado.edicionBloqueada && estado.modo === 'editar') ponerModo('ver');
+  }
+
+  btnVer.addEventListener('click', () => ponerModo('ver'));
+  btnEditar.addEventListener('click', () => ponerModo('editar'));
+  btnDeshacer.addEventListener('click', deshacer);
+  btnRehacer.addEventListener('click', rehacer);
+
+  function abrirMenu() {
+    menu.hidden = false;
+    btnAgregar.setAttribute('aria-expanded', 'true');
+    ocultarTooltip();
+  }
+  function cerrarMenu() {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    btnAgregar.setAttribute('aria-expanded', 'false');
+  }
+  btnAgregar.addEventListener('click', () => (menu.hidden ? abrirMenu() : cerrarMenu()));
+  menu.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tipo]');
+    if (!b) return;
+    cerrarMenu();
+    crear(b.getAttribute('data-tipo'));
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!menu.hidden && !menu.contains(e.target) && !btnAgregar.contains(e.target)) cerrarMenu();
+  }, true);
+
+  // =========================================================================
   //  Estados del lienzo (cargando, vacío, error)
   // =========================================================================
   function mostrarEstado(titulo, texto, opciones) {
@@ -634,14 +1187,22 @@
     return u + (u.indexOf('?') === -1 ? '?' : '&') + 'recurso=mapa';
   }
 
+  /** Lienzo vacío en modo Ver, sin posibilidad de editar (sin servidor utilizable). */
+  function bloquearEdicion(motivo, cargado) {
+    estado.mapa = mapaVacio();
+    estado.cargado = cargado;
+    estado.edicionBloqueada = motivo;
+    estado.seleccion = null;
+    reiniciarHistorial();
+    actualizarDisponibilidadEdicion();
+    pedirRender();
+  }
+
   function cargarMapa() {
     if (estado.cargando) return;
     if (!B.configurado) {
-      estado.mapa = mapaVacio();
-      estado.cargado = true;
-      estado.edicionBloqueada = 'sin-configuracion';
+      bloquearEdicion('sin-configuracion', true);
       mostrarEstado('Sin conexión a la hoja de datos', 'Conectá tu hoja de Google para ver y guardar el mapa (ver README).');
-      pedirRender();
       return;
     }
     estado.cargando = true;
@@ -656,11 +1217,8 @@
         }
         if (typeof res.version !== 'number') {
           // El Codigo.gs viejo ignora ?recurso=mapa y devuelve las revisiones.
-          estado.mapa = mapaVacio();
-          estado.cargado = true;
-          estado.edicionBloqueada = 'script-viejo';
+          bloquearEdicion('script-viejo', true);
           mostrarEstado(null, 'Falta actualizar el script de Google para usar el mapa (ver README → Actualizar el script).');
-          pedirRender();
           return;
         }
         aplicarMapaServidor(res);
@@ -672,20 +1230,20 @@
   }
 
   function errorDeCarga(detalle) {
-    if (!estado.cargado) {
-      estado.mapa = mapaVacio();
-      estado.edicionBloqueada = 'error';
-    }
+    if (!estado.cargado) bloquearEdicion('error', false);
     mostrarEstado('No se pudo cargar el mapa', detalle, { reintentar: true });
-    pedirRender();
   }
 
   function aplicarMapaServidor(res) {
     const data = res.data && Array.isArray(res.data.items) ? res.data : mapaVacio();
-    estado.mapa = { esquema: 1, unidad: 'm', items: data.items };
+    ponerItems(data.items);
     estado.versionBase = res.version;
     estado.cargado = true;
     estado.edicionBloqueada = null;
+    if (estado.seleccion && !itemPorId(estado.seleccion)) estado.seleccion = null;
+    reiniciarHistorial();
+    actualizarDisponibilidadEdicion();
+    sincronizarPanel();
     actualizarDatalist();
     actualizarEstadoVacio();
     ajustar();
@@ -737,17 +1295,49 @@
     const p = posicion(e);
     punteros.set(e.pointerId, p);
     if (punteros.size === 2) {
+      terminarEdicion(); // un segundo dedo convierte el arrastre en pellizco
       iniciarPinch();
       ocultarTooltip();
       return;
     }
     if (punteros.size > 2) return;
+    cerrarMenu();
+    if (estado.modo === 'editar') {
+      const asa = e.target.closest ? e.target.closest('[data-asa]') : null;
+      const seleccionado = itemPorId(estado.seleccion);
+      if (asa && seleccionado) {
+        const cual = asa.getAttribute('data-asa');
+        gesto = {
+          tipo: 'asa', asa: cual, original: seleccionado, inicio: p, movio: false,
+          inicioMundo: aMundo(p.x, p.y), ancla: anclaDeAsa(seleccionado, cual)
+        };
+        return;
+      }
+      const id = idBajo(e);
+      if (id) {
+        if (id !== estado.seleccion) seleccionar(id);
+        gesto = { tipo: 'mover', original: itemPorId(id), inicio: p, inicioMundo: aMundo(p.x, p.y), movio: false };
+        return;
+      }
+    }
     const v = estado.vista;
     gesto = {
       tipo: 'pan', inicio: p, tx0: v.tx, ty0: v.ty, movio: false,
       objetivo: idBajo(e), pointerType: e.pointerType
     };
   });
+
+  /** Cierra un arrastre de edición: un solo paso de deshacer por gesto. */
+  function terminarEdicion() {
+    if (!gesto || (gesto.tipo !== 'mover' && gesto.tipo !== 'asa')) return;
+    const fue = gesto;
+    gesto = null;
+    svg.classList.remove('arrastrando');
+    if (fue.movio) {
+      confirmarPaso();
+      sincronizarPanel();
+    }
+  }
 
   svg.addEventListener('pointermove', (e) => {
     const p = posicion(e);
@@ -766,6 +1356,26 @@
       v.tx = centro.x - wx * s;
       v.ty = centro.y - wy * s;
       pedirRender();
+      return;
+    }
+
+    if (gesto && (gesto.tipo === 'mover' || gesto.tipo === 'asa') && punteros.has(e.pointerId)) {
+      if (!gesto.movio && Math.hypot(p.x - gesto.inicio.x, p.y - gesto.inicio.y) < 3) return; // < 3 px = clic
+      if (!gesto.movio) {
+        gesto.movio = true;
+        svg.classList.add('arrastrando');
+        ocultarTooltip();
+      }
+      const w = aMundo(p.x, p.y);
+      const dx = w[0] - gesto.inicioMundo[0], dy = w[1] - gesto.inicioMundo[1];
+      if (gesto.tipo === 'mover') {
+        reemplazarItem(moverItem(gesto.original, dx, dy, e.altKey));
+      } else {
+        // Esquinas y extremos se mueven en relación con donde se agarró el asa
+        // (que puede estar separada del punto real); la rotación usa el puntero.
+        const objetivo = gesto.ancla ? [gesto.ancla[0] + dx, gesto.ancla[1] + dy] : w;
+        reemplazarItem(aplicarAsa(gesto.original, gesto.asa, objetivo, e.altKey));
+      }
       return;
     }
 
@@ -807,14 +1417,24 @@
       }
       return;
     }
+    if (gesto && (gesto.tipo === 'mover' || gesto.tipo === 'asa')) {
+      const toque = !gesto.movio && e.type === 'pointerup';
+      terminarEdicion();
+      if (toque) asegurarVisible();
+      return;
+    }
     if (gesto && gesto.tipo === 'pan' && !punteros.size) {
       const fue = gesto;
       gesto = null;
       svg.classList.remove('arrastrando');
-      if (!fue.movio && e.type === 'pointerup' && fue.pointerType !== 'mouse') {
-        // Toque: muestra el tooltip anclado sobre el elemento, o lo cierra.
-        if (fue.objetivo && fue.objetivo !== tooltipId) mostrarTooltip(fue.objetivo, null);
-        else ocultarTooltip();
+      if (!fue.movio && e.type === 'pointerup') {
+        if (estado.modo === 'editar') {
+          deseleccionar(); // clic o toque en vacío
+        } else if (fue.pointerType !== 'mouse') {
+          // Toque: muestra el tooltip anclado sobre el elemento, o lo cierra.
+          if (fue.objetivo && fue.objetivo !== tooltipId) mostrarTooltip(fue.objetivo, null);
+          else ocultarTooltip();
+        }
       }
     }
   }
@@ -847,8 +1467,51 @@
     return n && (n.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(n.tagName));
   }
 
+  const FLECHAS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+  /** Atajos del modo Editar. Devuelve true si la tecla ya se atendió. */
+  function teclaEdicion(e, enCampo) {
+    const mod = e.ctrlKey || e.metaKey;
+    const tecla = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (mod && !enCampo && tecla === 'z') { e.preventDefault(); if (e.shiftKey) rehacer(); else deshacer(); return true; }
+    if (mod && !enCampo && tecla === 'y') { e.preventDefault(); rehacer(); return true; }
+    if (mod && !enCampo && tecla === 'd') { e.preventDefault(); if (estado.seleccion) duplicar(estado.seleccion); return true; }
+    if (enCampo) {
+      if (e.key === 'Escape') e.target.blur();
+      return true;
+    }
+    if (e.key === 'Escape') {
+      if (!menu.hidden) { cerrarMenu(); btnAgregar.focus(); } else deseleccionar();
+      return true;
+    }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && estado.seleccion) {
+      e.preventDefault();
+      borrar(estado.seleccion);
+      return true;
+    }
+    if (FLECHAS[e.key] && estado.seleccion && !mod) {
+      e.preventDefault();
+      const paso = e.shiftKey ? 0.5 : 0.05; // 50 cm / 5 cm
+      empujar(FLECHAS[e.key][0] * paso, FLECHAS[e.key][1] * paso);
+      return true;
+    }
+    if (e.key === 'Enter') {
+      const g = e.target.closest ? e.target.closest('[data-id]') : null;
+      if (g) {
+        e.preventDefault();
+        seleccionar(g.getAttribute('data-id'));
+        asegurarVisible();
+        return true;
+      }
+    }
+    return false;
+  }
+
   document.addEventListener('keydown', (e) => {
-    if (B.tab !== 'mapa' || esCampoDeTexto(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (B.tab !== 'mapa') return;
+    const enCampo = esCampoDeTexto(e.target);
+    if (estado.modo === 'editar' && teclaEdicion(e, enCampo)) return;
+    if (enCampo || e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === '+' || e.key === '=') { zoomCentro(1.25); e.preventDefault(); }
     else if (e.key === '-' || e.key === '_') { zoomCentro(1 / 1.25); e.preventDefault(); }
     else if (e.key === '0') { ajustar(); e.preventDefault(); }
@@ -900,6 +1563,7 @@
   document.addEventListener('bitacora:revisiones', (e) => indexarRevisiones(e.detail));
 
   // ---- Inicio --------------------------------------------------------------
+  actualizarDisponibilidadEdicion();
   if (B.revisiones) indexarRevisiones(B.revisiones);
   if (B.tab === 'mapa') alMostrar();
   else if (B.tab === 'nueva') cargarMapa();
