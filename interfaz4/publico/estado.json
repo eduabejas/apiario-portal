@@ -72,12 +72,15 @@
     {
      "horas": 12,
      "programado": "2026-10-07T13:39-03:00",
-     "estado": "pendiente",
-     "momento": null,
-     "canales": {},
+     "estado": "enviado",
+     "momento": "2026-10-07T13:40-03:00",
+     "canales": {
+      "correo": "ok",
+      "google_chat": "deshabilitado"
+     },
      "errores": null,
      "detalle": null,
-     "informe": null
+     "informe": "informes/2026-10-08-produccion_miel-01_12.html"
     }
    ]
   }

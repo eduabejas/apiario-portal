@@ -1,0 +1,609 @@
+{
+ "version": 1,
+ "visita": {
+  "id": "2026-10-08-produccion_miel-01",
+  "apiario": "produccion_miel",
+  "fecha": "2026-10-08",
+  "desde": "01:39",
+  "hasta": "13:00",
+  "responsable": "Eduardo Mendoza",
+  "correo": null,
+  "canales": [
+   "correo"
+  ],
+  "estado": "planificada",
+  "notas": "Revision de nucleos",
+  "origen": "issue #7",
+  "registrada": "2026-10-07T01:37:00-03:00"
+ },
+ "apiario": {
+  "id": "produccion_miel",
+  "nombre": "Apiario de producción melífera",
+  "localidad": "Berisso, Buenos Aires",
+  "lat": -34.889180362505506,
+  "lon": -57.82789829443907
+ },
+ "hito": 12,
+ "generado": "2026-10-07T13:40:28.946953-03:00",
+ "proximo_informe": null,
+ "series": [
+  {
+   "fuente": "smn_wrf",
+   "emitido_utc": "2026-10-07T12:00:00Z",
+   "obtenido_utc": "2026-10-07T16:41:46.595268Z",
+   "puntos": [
+    {
+     "hora_local": "2026-10-08T01:00:00-03:00",
+     "temp_c": 15.42,
+     "hr_pct": 100.5,
+     "viento_kmh": 1.52,
+     "viento_dir_grados": 124.0,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T02:00:00-03:00",
+     "temp_c": 15.7,
+     "hr_pct": 100.0,
+     "viento_kmh": 3.17,
+     "viento_dir_grados": 245.4,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.035,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T03:00:00-03:00",
+     "temp_c": 15.56,
+     "hr_pct": 99.0,
+     "viento_kmh": 2.6,
+     "viento_dir_grados": 260.8,
+     "viento_dir_cardinal": "O",
+     "rafaga_kmh": null,
+     "precip_mm": 0.026,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T04:00:00-03:00",
+     "temp_c": 14.96,
+     "hr_pct": 97.7,
+     "viento_kmh": 4.86,
+     "viento_dir_grados": 250.1,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T05:00:00-03:00",
+     "temp_c": 14.29,
+     "hr_pct": 97.3,
+     "viento_kmh": 7.64,
+     "viento_dir_grados": 242.8,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T06:00:00-03:00",
+     "temp_c": 13.88,
+     "hr_pct": 98.2,
+     "viento_kmh": 9.08,
+     "viento_dir_grados": 248.0,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T07:00:00-03:00",
+     "temp_c": 14.04,
+     "hr_pct": 94.5,
+     "viento_kmh": 12.47,
+     "viento_dir_grados": 238.2,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T08:00:00-03:00",
+     "temp_c": 14.71,
+     "hr_pct": 88.0,
+     "viento_kmh": 11.64,
+     "viento_dir_grados": 235.8,
+     "viento_dir_cardinal": "SO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T09:00:00-03:00",
+     "temp_c": 15.37,
+     "hr_pct": 82.5,
+     "viento_kmh": 10.7,
+     "viento_dir_grados": 236.8,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T10:00:00-03:00",
+     "temp_c": 16.97,
+     "hr_pct": 73.5,
+     "viento_kmh": 11.88,
+     "viento_dir_grados": 244.7,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T11:00:00-03:00",
+     "temp_c": 17.95,
+     "hr_pct": 67.4,
+     "viento_kmh": 14.15,
+     "viento_dir_grados": 245.6,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T12:00:00-03:00",
+     "temp_c": 18.18,
+     "hr_pct": 63.2,
+     "viento_kmh": 15.77,
+     "viento_dir_grados": 240.9,
+     "viento_dir_cardinal": "OSO",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    }
+   ],
+   "errores": [],
+   "detalle_emision": "ciclo 07/10 12 UTC"
+  },
+  {
+   "fuente": "metno",
+   "emitido_utc": "2026-10-07T13:17:01Z",
+   "obtenido_utc": "2026-10-07T16:41:47.122615Z",
+   "puntos": [
+    {
+     "hora_local": "2026-10-08T01:00:00-03:00",
+     "temp_c": 15.4,
+     "hr_pct": 98.4,
+     "viento_kmh": 21.24,
+     "viento_dir_grados": 128.6,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T02:00:00-03:00",
+     "temp_c": 15.3,
+     "hr_pct": 98.3,
+     "viento_kmh": 19.8,
+     "viento_dir_grados": 126.1,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T03:00:00-03:00",
+     "temp_c": 15.3,
+     "hr_pct": 98.7,
+     "viento_kmh": 17.28,
+     "viento_dir_grados": 130.5,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T04:00:00-03:00",
+     "temp_c": 15.3,
+     "hr_pct": 98.7,
+     "viento_kmh": 15.12,
+     "viento_dir_grados": 149.5,
+     "viento_dir_cardinal": "SSE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T05:00:00-03:00",
+     "temp_c": 15.2,
+     "hr_pct": 98.8,
+     "viento_kmh": 15.84,
+     "viento_dir_grados": 157.3,
+     "viento_dir_cardinal": "SSE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T06:00:00-03:00",
+     "temp_c": 15.2,
+     "hr_pct": 98.6,
+     "viento_kmh": 12.24,
+     "viento_dir_grados": 145.2,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T07:00:00-03:00",
+     "temp_c": 15.2,
+     "hr_pct": 98.4,
+     "viento_kmh": 14.04,
+     "viento_dir_grados": 164.9,
+     "viento_dir_cardinal": "SSE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T08:00:00-03:00",
+     "temp_c": 15.5,
+     "hr_pct": 96.1,
+     "viento_kmh": 15.12,
+     "viento_dir_grados": 179.1,
+     "viento_dir_cardinal": "S",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T09:00:00-03:00",
+     "temp_c": 16.0,
+     "hr_pct": 94.4,
+     "viento_kmh": 14.04,
+     "viento_dir_grados": 180.1,
+     "viento_dir_cardinal": "S",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T10:00:00-03:00",
+     "temp_c": 17.2,
+     "hr_pct": 89.4,
+     "viento_kmh": 12.24,
+     "viento_dir_grados": 175.8,
+     "viento_dir_cardinal": "S",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T11:00:00-03:00",
+     "temp_c": 17.7,
+     "hr_pct": 87.2,
+     "viento_kmh": 13.68,
+     "viento_dir_grados": 166.1,
+     "viento_dir_cardinal": "SSE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.1,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T12:00:00-03:00",
+     "temp_c": 18.4,
+     "hr_pct": 83.0,
+     "viento_kmh": 14.04,
+     "viento_dir_grados": 151.9,
+     "viento_dir_cardinal": "SSE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.2,
+     "prob_precip_pct": null
+    }
+   ],
+   "errores": [],
+   "detalle_emision": "actualizado 07/10 13:17 UTC"
+  }
+ ],
+ "tramo_desde": "2026-10-07T13:00:00-03:00",
+ "tramo_hasta": "2026-10-08T01:00:00-03:00",
+ "series_previas": [
+  {
+   "fuente": "smn_wrf",
+   "emitido_utc": "2026-10-07T12:00:00Z",
+   "obtenido_utc": "2026-10-07T16:42:17.929627Z",
+   "puntos": [
+    {
+     "hora_local": "2026-10-07T13:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.003,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T14:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T15:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T16:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T17:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T18:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 1.646,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T19:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.593,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T20:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 1.521,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T21:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 1.554,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T22:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.117,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T23:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T00:00:00-03:00",
+     "temp_c": null,
+     "hr_pct": null,
+     "viento_kmh": null,
+     "viento_dir_grados": null,
+     "viento_dir_cardinal": null,
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    }
+   ],
+   "errores": [],
+   "detalle_emision": "ciclo 07/10 12 UTC"
+  },
+  {
+   "fuente": "metno",
+   "emitido_utc": "2026-10-07T13:17:01Z",
+   "obtenido_utc": "2026-10-07T16:42:17.930398Z",
+   "puntos": [
+    {
+     "hora_local": "2026-10-07T13:00:00-03:00",
+     "temp_c": 16.6,
+     "hr_pct": 97.0,
+     "viento_kmh": 21.6,
+     "viento_dir_grados": 108.7,
+     "viento_dir_cardinal": "ESE",
+     "rafaga_kmh": null,
+     "precip_mm": 9.1,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T14:00:00-03:00",
+     "temp_c": 16.3,
+     "hr_pct": 97.8,
+     "viento_kmh": 22.68,
+     "viento_dir_grados": 116.6,
+     "viento_dir_cardinal": "ESE",
+     "rafaga_kmh": null,
+     "precip_mm": 6.1,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T15:00:00-03:00",
+     "temp_c": 15.7,
+     "hr_pct": 96.9,
+     "viento_kmh": 31.32,
+     "viento_dir_grados": 92.1,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 1.9,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T16:00:00-03:00",
+     "temp_c": 16.3,
+     "hr_pct": 96.9,
+     "viento_kmh": 31.68,
+     "viento_dir_grados": 112.0,
+     "viento_dir_cardinal": "ESE",
+     "rafaga_kmh": null,
+     "precip_mm": 2.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T17:00:00-03:00",
+     "temp_c": 16.5,
+     "hr_pct": 97.1,
+     "viento_kmh": 25.2,
+     "viento_dir_grados": 98.2,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 1.5,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T18:00:00-03:00",
+     "temp_c": 16.1,
+     "hr_pct": 96.6,
+     "viento_kmh": 25.92,
+     "viento_dir_grados": 92.8,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 1.3,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T19:00:00-03:00",
+     "temp_c": 16.1,
+     "hr_pct": 96.8,
+     "viento_kmh": 28.08,
+     "viento_dir_grados": 92.1,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 0.4,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T20:00:00-03:00",
+     "temp_c": 16.2,
+     "hr_pct": 97.0,
+     "viento_kmh": 24.84,
+     "viento_dir_grados": 95.7,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 0.1,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T21:00:00-03:00",
+     "temp_c": 16.4,
+     "hr_pct": 97.3,
+     "viento_kmh": 20.52,
+     "viento_dir_grados": 96.0,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T22:00:00-03:00",
+     "temp_c": 16.2,
+     "hr_pct": 97.2,
+     "viento_kmh": 23.4,
+     "viento_dir_grados": 99.8,
+     "viento_dir_cardinal": "E",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-07T23:00:00-03:00",
+     "temp_c": 15.7,
+     "hr_pct": 97.6,
+     "viento_kmh": 21.24,
+     "viento_dir_grados": 113.8,
+     "viento_dir_cardinal": "ESE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    },
+    {
+     "hora_local": "2026-10-08T00:00:00-03:00",
+     "temp_c": 15.2,
+     "hr_pct": 98.2,
+     "viento_kmh": 17.64,
+     "viento_dir_grados": 143.2,
+     "viento_dir_cardinal": "SE",
+     "rafaga_kmh": null,
+     "precip_mm": 0.0,
+     "prob_precip_pct": null
+    }
+   ],
+   "errores": [],
+   "detalle_emision": "actualizado 07/10 13:17 UTC"
+  }
+ ],
+ "alertas": {
+  "disponible": true,
+  "alertas": [],
+  "errores": [],
+  "obtenido_utc": "2026-10-07T16:42:25.315481Z"
+ },
+ "fuentes_deshabilitadas": [
+  "open_meteo",
+  "ecmwf_ens"
+ ]
+}
