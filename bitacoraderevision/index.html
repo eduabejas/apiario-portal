@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/mapa.css" />
 </head>
 <body>
   <header class="top">
@@ -183,7 +184,53 @@
     </section>
 
     <!-- ============ PANEL: MAPA ============ -->
-    <section id="panelMapa" role="tabpanel" aria-labelledby="tabMapaBtn" hidden></section>
+    <section id="panelMapa" role="tabpanel" aria-labelledby="tabMapaBtn" hidden>
+      <div class="mapa" id="mapaLienzo">
+        <svg id="mapaSvg" role="application" aria-label="Mapa del apiario" tabindex="0">
+          <g id="capaGrilla"></g>
+          <g id="mundo">
+            <g id="capaLimites"></g>
+            <g id="capaBases"></g>
+            <g id="capaColmenas"></g>
+            <g id="capaTextos"></g>
+          </g>
+          <g id="capaSeleccion"></g>
+        </svg>
+
+        <div class="mapa-estado" id="mapaEstado" hidden></div>
+
+        <div class="mapa-referencias" aria-hidden="true">
+          <svg class="mapa-brujula" viewBox="0 0 64 64" width="64" height="64">
+            <rect class="b-fondo" x="0.5" y="0.5" width="63" height="63" rx="10" />
+            <circle class="b-aro" cx="32" cy="32" r="19" />
+            <path class="b-norte" d="M32 15 L36.5 32 L27.5 32 Z" />
+            <path class="b-sur" d="M32 49 L36.5 32 L27.5 32 Z" />
+            <text class="b-letra" x="32" y="10.5">N</text>
+            <text class="b-letra" x="32" y="60.5">S</text>
+            <text class="b-letra" x="58" y="35.5">E</text>
+            <text class="b-letra" x="6" y="35.5">O</text>
+          </svg>
+          <div class="mapa-escala">
+            <svg id="mapaEscalaSvg" height="12" width="120"><path id="mapaEscalaRegla" d="" /></svg>
+            <span id="mapaEscalaTxt"></span>
+          </div>
+        </div>
+
+        <div class="mapa-controles">
+          <button type="button" class="mapa-zoom" id="mapaZoomMas" aria-label="Acercar" title="Acercar (+)">
+            <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" /></svg>
+          </button>
+          <button type="button" class="mapa-zoom" id="mapaZoomMenos" aria-label="Alejar" title="Alejar (−)">
+            <svg viewBox="0 0 16 16"><path d="M3 8h10" /></svg>
+          </button>
+          <button type="button" class="mapa-zoom" id="mapaAjustar" aria-label="Ajustar la vista al contenido" title="Ajustar vista (0)">
+            <svg viewBox="0 0 16 16"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg>
+          </button>
+        </div>
+
+        <div class="mapa-tooltip" id="mapaTooltip" role="tooltip" hidden></div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -193,5 +240,6 @@
 
   <script src="assets/config.js"></script>
   <script src="assets/app.js"></script>
+  <script src="assets/mapa.js"></script>
 </body>
 </html>
