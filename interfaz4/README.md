@@ -67,7 +67,9 @@ secret**. Nunca se escriben en el código ni en `datos/`.
 - **Actions → "Interfaz 4 — motor de informes" → Run workflow → `probar-fuentes`**:
   muestra el estado de cada fuente y si el correo está configurado.
 - Registrá una visita de prueba para mañana. Si está a menos de 24 h, el
-  informe de 24 h sale en unos minutos (el registro dispara el motor).
+  informe de 24 h sale en unos minutos (el registro dispara el motor). Si
+  está más lejos, el motor queda programado para la hora de cada informe:
+  se ve en Actions → "Interfaz 4 — espera del próximo envío" ("Espera hasta …").
 - Si un correo falla (p. ej. faltan secretos), Interfaz 4 lo muestra como
   "No se pudo enviar" con el motivo, y el motor lo reintenta cada hora
   mientras ese informe siga vigente.
@@ -113,7 +115,8 @@ Asunto: `🐝 Visita {apiario} {dd/mm} {desde}–{hasta} · informe {24|12} h`.
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
-| `interfaz4.yml` — motor | cada hora (min 17) y manual | `interfaz4 ejecutar`: envía los hitos vencidos, actualiza `state/` y `publico/` y los commitea (`chore(estado): envíos …`) |
+| `interfaz4.yml` — motor | a la hora de cada envío (lo dispara la espera), cada hora como respaldo y manual | `interfaz4 ejecutar`: envía los hitos vencidos, actualiza `state/` y `publico/`, los commitea (`chore(estado): envíos …`) y programa la espera hasta el próximo envío |
+| `interfaz4-espera.yml` | lo dispara el motor | duerme hasta el próximo envío y dispara el motor (ver abajo) |
 | `interfaz4-registro.yml` | al abrir/editar un issue de Interfaz 4 | valida y guarda la visita en `datos/visitas.yaml`, responde, cierra el issue y dispara el motor |
 | `interfaz4-ci.yml` | push / PR | tests de Python y de la web |
 | `interfaz4-verificar.yml` | manual | vuelve a verificar las fuentes desde Actions (Fase 0) |
@@ -121,10 +124,30 @@ Asunto: `🐝 Visita {apiario} {dd/mm} {desde}–{hasta} · informe {24|12} h`.
 **Forzar una ejecución:** Actions → "Interfaz 4 — motor de informes" → Run
 workflow.
 
-**Confiabilidad del cron:** el `schedule` de GitHub es *best effort* y a veces
-se demora o saltea ejecuciones. La regla "hito vencido y no enviado" lo
-absorbe: el informe sale en la primera ejecución posterior. Como redundancia
-gratuita se puede:
+**Envíos a horario:** el `schedule` de GitHub es *best effort*: en este
+repositorio el cron horario corrió en promedio cada ~5,6 h (con huecos de
+hasta 9 h), así que un informe podía salir horas tarde. Por eso el motor no
+depende del cron:
+
+1. Cada `interfaz4 ejecutar` calcula el próximo envío: el próximo hito
+   pendiente o, si un envío falló, el reintento una hora después.
+2. El workflow dispara `interfaz4-espera.yml` con ese momento. La espera
+   duerme hasta esa hora y dispara el motor, que envía y programa la
+   siguiente. Una espera nueva reemplaza a la anterior: es normal ver esperas
+   canceladas en Actions.
+3. GitHub corta los jobs a las 6 h: si falta más, la espera dura 5 h 45 min y
+   dispara el motor, que no envía nada y la vuelve a programar.
+
+El correo llega unos minutos después de la hora del hito: armar y enviar el
+informe tarda entre 1 y 4 minutos (casi todo es leer el WRF del SMN en S3).
+El cron sigue como respaldo: si la cadena se corta, la regla "hito vencido y
+no enviado" hace que el informe salga en la primera ejecución posterior.
+
+En un repositorio público los minutos de Actions no tienen costo. Si algún
+día pasa a privado, la espera gastaría la cuota gratuita de minutos y
+convendría desactivarla.
+
+Para sumar redundancia gratuita se puede:
 
 - disparar el workflow desde un cron externo con un token *fine-grained*
   (permiso *Actions: write* solo en este repo):

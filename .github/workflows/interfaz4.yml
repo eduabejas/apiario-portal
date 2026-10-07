@@ -1,9 +1,10 @@
 name: Interfaz 4 — motor de informes
 
-# Cada hora (minuto 17) revisa las visitas: si un hito de 24 h o 12 h está
-# vencido y no se envió, arma el informe y lo manda por correo (y Google
-# Chat si está habilitado). La lógica de "hito vencido y no enviado"
-# absorbe demoras o ejecuciones salteadas del cron de GitHub.
+# Revisa las visitas: si un hito de 24 h o 12 h está vencido y no se envió,
+# arma el informe y lo manda por correo (y Google Chat si está habilitado).
+# Al terminar programa la próxima ejecución a la hora exacta del próximo
+# envío (interfaz4-espera.yml). El cron horario queda de respaldo: GitHub lo
+# demora o lo saltea, y la regla "hito vencido y no enviado" lo absorbe.
 
 on:
   schedule:
@@ -46,7 +47,11 @@ jobs:
       GCHAT_WEBHOOK_URL: ${{ secrets.GCHAT_WEBHOOK_URL }}
       METNO_USER_AGENT: ${{ secrets.METNO_USER_AGENT }}
     steps:
+      # main al momento de correr (no el commit del evento): si esta ejecución
+      # esperó a otra en la cola, así ve los envíos que esa ya registró.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -75,6 +80,7 @@ jobs:
           restore-keys: metno-
 
       - name: Ejecutar motor
+        id: motor
         if: github.event_name != 'workflow_dispatch' || inputs.accion == 'ejecutar'
         run: uv run interfaz4 -v ejecutar
 
@@ -105,6 +111,18 @@ jobs:
           for intento in 1 2 3 4 5; do
             git pull --rebase origin main && git push origin HEAD:main && exit 0
             sleep $((intento * 5))
+          done
+          exit 1
+
+      - name: Programar el próximo envío
+        if: steps.motor.outputs.proximo != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROXIMO: ${{ steps.motor.outputs.proximo }}
+        run: |
+          for intento in 1 2 3; do
+            gh workflow run interfaz4-espera.yml --ref main -f hasta="$PROXIMO" && exit 0
+            sleep $((intento * 10))
           done
           exit 1
 

@@ -19,7 +19,7 @@ from interfaz4.modelos import CANALES, RegistroHito, Visita
 from interfaz4.notificar import ErrorEnvio
 from interfaz4.notificar.correo_smtp import EnviadorCorreo
 from interfaz4.notificar.google_chat import EnviadorGoogleChat
-from interfaz4.planificador import Accion, planificar
+from interfaz4.planificador import Accion, planificar, proximo_momento
 from interfaz4.visitas.archivo_yaml import RepositorioYAML
 
 log = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ class ResultadoEjecucion:
     acciones: list[ResultadoAccion] = field(default_factory=list)
     marcas: list[tuple[str, int, str]] = field(default_factory=list)
     visitas_planificadas: int = 0
+    proximo: datetime | None = None  # próximo momento con algo para enviar
 
     def resumen(self) -> str:
         lineas = [f"Ejecución del {tiempo.fmt_momento(self.ahora)} · visitas planificadas: {self.visitas_planificadas}"]
@@ -50,6 +51,10 @@ class ResultadoEjecucion:
             lineas.append(f"- {a.visita_id} · informe {a.hito} h ({a.tipo}) → {a.estado} [{canales}]")
         if not self.marcas and not self.acciones:
             lineas.append("- Sin hitos vencidos: no hubo envíos.")
+        if self.proximo:
+            lineas.append(f"- Próximo envío: {tiempo.fmt_momento(self.proximo)}")
+        else:
+            lineas.append("- No quedan envíos pendientes.")
         return "\n".join(lineas)
 
 
@@ -185,4 +190,5 @@ class Motor:
             )
             estado.guardar()  # persistir después de cada envío
         estado.guardar()
+        resultado.proximo = proximo_momento(visitas, estado, hitos, ahora)
         return resultado

@@ -95,7 +95,7 @@ def agenda_de_informes(config: Config, visita: Visita, ahora: datetime) -> list[
     for h in config.ajustes.hitos_horas:
         momento = momento_hito(visita.inicio, h)
         if momento > ahora:
-            lineas.append(f"- Informe {h} h: aprox. {tiempo.fmt_momento(momento)} (en la primera ejecución horaria posterior)")
+            lineas.append(f"- Informe {h} h: aprox. {tiempo.fmt_momento(momento)} (llega unos minutos después de esa hora)")
         elif h == inmediato:
             lineas.append(f"- Informe {h} h: su momento ya pasó; sale en la próxima ejecución del motor (en unos minutos)")
         else:
