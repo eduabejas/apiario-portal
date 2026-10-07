@@ -60,9 +60,13 @@ def test_ciclo_24_12_con_idempotencia(config, tmp_path):
     correo, fabricas = CorreoFalso(), []
     m = motor(config, tmp_path, correo=correo, fabricas=fabricas)
 
-    assert m.ejecutar(local("2026-10-03T08:59")).acciones == []  # el hito vence a las 09:00
+    r = m.ejecutar(local("2026-10-03T08:59"))
+    assert r.acciones == []  # el hito vence a las 09:00
+    assert r.proximo == local("2026-10-03T09:00")  # la espera se programa para esa hora
+    assert "Próximo envío: sábado 03/10/2026 09:00" in r.resumen()
     r = m.ejecutar(local("2026-10-03T09:17"))
     assert [(a.hito, a.estado) for a in r.acciones] == [(24, "enviado")]
+    assert r.proximo == local("2026-10-03T21:00")
     asunto, destinatarios, texto = correo.enviados[-1]
     assert asunto == "🐝 Visita Apiario de producción melífera 04/10 09:00–13:00 · informe 24 h"
     assert destinatarios == ["apicultor@example.com"]
@@ -76,7 +80,9 @@ def test_ciclo_24_12_con_idempotencia(config, tmp_path):
     assert [(a.hito, a.estado) for a in r.acciones] == [(12, "enviado")]
     assert "CAMBIOS RESPECTO AL INFORME DE 24 H" in correo.enviados[-1][2]
 
-    assert motor(config, tmp_path, correo=correo).ejecutar(local("2026-10-04T10:00")).acciones == []
+    r = motor(config, tmp_path, correo=correo).ejecutar(local("2026-10-04T10:00"))
+    assert r.acciones == [] and r.proximo is None
+    assert "No quedan envíos pendientes." in r.resumen()
     estado = json.loads(config.rutas.envios_json.read_text())
     assert estado[v.id]["24"]["estado"] == "enviado"
     assert estado[v.id]["12"]["estado"] == "enviado"
@@ -90,6 +96,7 @@ def test_fallo_de_canal_queda_registrado_y_se_reintenta(config, tmp_path):
     fabricas = []
     r = motor(config, tmp_path, correo=CorreoFalso(fallar=True), fabricas=fabricas).ejecutar(local("2026-10-03T09:17"))
     assert r.acciones[0].estado == "error"
+    assert r.proximo == local("2026-10-03T10:17")  # reintento en una hora
     reg = EstadoEnvios(config.rutas.envios_json).hito(v.id, 24)
     assert reg.canales["correo"].startswith("error: correo sin configurar")
     # Próxima hora: se reintenta con el snapshot guardado (sin volver a consultar fuentes).
@@ -185,8 +192,12 @@ def test_cli_end_to_end_con_ahora(proyecto, tmp_path, monkeypatch, smtp_local):
     assert "Visita registrada: 2026-10-04-produccion_miel-01" in r.output
     assert "Informe 24 h: aprox. sábado 03/10/2026 09:00" in r.output
 
+    salidas = tmp_path / "github_output"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(salidas))
     r = runner.invoke(cli.app, ["ejecutar", "--ahora", "2026-10-03T08:17-03:00", *base])
     assert r.exit_code == 0 and "Sin hitos vencidos" in r.output and servidor.mensajes == []
+    # El workflow programa la espera hasta el próximo envío con esta salida.
+    assert salidas.read_text().splitlines() == ["proximo=2026-10-03T09:00:00-03:00"]
 
     r = runner.invoke(cli.app, ["ejecutar", "--ahora", "2026-10-03T09:17-03:00", *base])
     assert r.exit_code == 0, r.output
@@ -195,6 +206,7 @@ def test_cli_end_to_end_con_ahora(proyecto, tmp_path, monkeypatch, smtp_local):
     assert "Sin hitos vencidos" in r.output
     r = runner.invoke(cli.app, ["ejecutar", "--ahora", "2026-10-03T21:17-03:00", *base])
     assert "informe 12 h (enviar) → enviado" in r.output
+    assert salidas.read_text().splitlines()[-1] == "proximo="  # nada más que programar
 
     asuntos = [email.message_from_bytes(m.content, policy=email.policy.default)["Subject"] for m in servidor.mensajes]
     assert asuntos == [

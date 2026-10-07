@@ -1,0 +1,64 @@
+name: Interfaz 4 — espera del próximo envío
+run-name: Espera hasta ${{ inputs.hasta }}
+
+# El cron del motor es "best effort": en este repositorio corrió en promedio
+# cada ~5,6 h (con huecos de hasta 9 h), así que un informe podía salir horas
+# tarde. Por eso, al terminar, el motor programa esta espera hasta el próximo
+# envío (`interfaz4 ejecutar` lo calcula): duerme hasta esa hora y dispara el
+# motor, que manda el informe y programa la espera siguiente.
+#
+# - Una espera nueva reemplaza a la anterior (concurrencia con cancelación):
+#   siempre queda una sola, la que calculó la última ejecución del motor. Es
+#   normal ver esperas canceladas en Actions.
+# - GitHub corta los jobs a las 6 h: si falta más, espera 5 h 45 min y
+#   dispara igual el motor, que no envía nada y vuelve a programar la espera.
+# - El cron horario del motor sigue como respaldo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      hasta:
+        description: 'Momento del próximo envío (ISO 8601 con zona, p. ej. 2026-10-07T13:39:00-03:00)'
+        required: true
+        type: string
+
+permissions:
+  actions: write   # disparar el motor
+
+concurrency:
+  group: interfaz4-espera
+  cancel-in-progress: true
+
+jobs:
+  esperar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Esperar y disparar el motor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HASTA: ${{ inputs.hasta }}
+        run: |
+          formato='^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?(Z|[+-][0-9]{2}:[0-9]{2})$'
+          if ! [[ "$HASTA" =~ $formato ]] || ! objetivo=$(date -d "$HASTA" +%s); then
+            echo "::error::'hasta' inválido: $HASTA"
+            exit 1
+          fi
+          maximo=$((345 * 60))
+          falta=$((objetivo - $(date +%s)))
+          echo "Próximo envío: $(TZ=America/Argentina/Buenos_Aires date -d "@$objetivo" '+%d/%m/%Y %H:%M') (hora Argentina)."
+          if [ "$falta" -gt "$maximo" ]; then
+            echo "Faltan $((falta / 60)) min: espero $((maximo / 60)) min (límite de 6 h de GitHub) y el motor vuelve a programar la espera."
+            falta=$maximo
+          fi
+          if [ "$falta" -gt 0 ]; then
+            echo "Espero $((falta / 60)) min $((falta % 60)) s."
+            sleep "$falta"
+          fi
+          for intento in 1 2 3; do
+            gh workflow run interfaz4.yml --ref main -f accion=ejecutar && exit 0
+            sleep $((intento * 15))
+          done
+          echo "::error::No se pudo disparar el motor; queda el cron horario como respaldo."
+          exit 1

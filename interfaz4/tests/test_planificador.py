@@ -1,6 +1,6 @@
 from interfaz4.estado import EstadoEnvios
 from interfaz4.modelos import RegistroHito, Visita
-from interfaz4.planificador import planificar
+from interfaz4.planificador import planificar, proximo_momento
 from tests.conftest import local
 
 HITOS = [24, 12]
@@ -73,3 +73,42 @@ def test_canceladas_e_idempotencia(tmp_path):
     assert planificar([visita(estado="cancelada")], estado(tmp_path), HITOS, local("2026-10-09T23:00")).acciones == []
     e = estado(tmp_path, h24=RegistroHito(estado="omitido"), h12=RegistroHito(estado="enviado"))
     assert planificar([visita()], e, HITOS, local("2026-10-09T23:30")).acciones == []
+
+
+def test_proximo_es_el_hito_pendiente_siguiente(tmp_path):
+    assert proximo_momento([visita()], estado(tmp_path), HITOS, local("2026-10-07T01:39")) == local("2026-10-09T09:00")
+    e = estado(tmp_path, h24=RegistroHito(estado="enviado", canales={"correo": "ok"}))
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-09T09:03")) == local("2026-10-09T21:00")
+
+
+def test_proximo_toma_la_visita_mas_cercana(tmp_path):
+    visitas = [visita(), visita(id="v2", fecha="2026-10-09", desde="15:30", hasta="18:00")]
+    assert proximo_momento(visitas, estado(tmp_path), HITOS, local("2026-10-08T10:00")) == local("2026-10-08T15:30")
+
+
+def test_lo_vencido_no_se_reprograma(tmp_path):
+    # Si la ejecución de `ahora` no pudo resolver un hito vencido, no se
+    # vuelve a programar enseguida (evita ejecuciones en cadena).
+    assert proximo_momento([visita()], estado(tmp_path), HITOS, local("2026-10-09T09:00")) == local("2026-10-09T21:00")
+    e = estado(tmp_path, h24=RegistroHito(estado="enviado"), h12=RegistroHito(estado="enviado"))
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-09T21:05")) is None
+
+
+def test_reintento_una_hora_despues_si_fallo(tmp_path):
+    e = estado(tmp_path, h24=RegistroHito(estado="error", canales={"correo": "error: SMTP"}))
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-09T09:03")) == local("2026-10-09T10:03")
+    e = estado(tmp_path, h24=RegistroHito(estado="parcial"))
+    # Si el próximo hito vence antes que el reintento, va primero el hito.
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-09T20:30")) == local("2026-10-09T21:00")
+
+
+def test_sin_reintento_si_la_visita_ya_habra_empezado(tmp_path):
+    e = estado(tmp_path, h24=RegistroHito(estado="omitido"), h12=RegistroHito(estado="error"))
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-10T08:10")) is None
+    assert proximo_momento([visita()], e, HITOS, local("2026-10-10T07:59")) == local("2026-10-10T08:59")
+
+
+def test_sin_proximo_para_canceladas_o_pasadas(tmp_path):
+    assert proximo_momento([visita(estado="cancelada")], estado(tmp_path), HITOS, local("2026-10-07T00:00")) is None
+    assert proximo_momento([visita()], estado(tmp_path), HITOS, local("2026-10-10T09:00")) is None
+    assert proximo_momento([], estado(tmp_path), HITOS, local("2026-10-07T00:00")) is None

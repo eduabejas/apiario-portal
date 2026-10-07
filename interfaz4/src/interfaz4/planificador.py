@@ -9,6 +9,9 @@ Reglas (spec §7):
 5. Si un canal falló, en la próxima ejecución se reintenta solo ese canal
    (mientras ese hito siga siendo el vigente).
 Tolera ejecuciones demoradas o salteadas del cron.
+
+`proximo_momento` dice cuándo vuelve a haber algo para hacer, para que el
+workflow programe la próxima ejecución a esa hora (ver interfaz4-espera.yml).
 """
 
 from __future__ import annotations
@@ -17,8 +20,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
+from interfaz4 import tiempo
 from interfaz4.estado import EstadoEnvios, momento_hito
 from interfaz4.modelos import Visita
+
+HORAS_REINTENTO = 1
 
 
 @dataclass
@@ -65,3 +71,30 @@ def planificar(visitas: list[Visita], estado: EstadoEnvios, hitos: list[int], ah
             fallidos = canales_fallidos(r.canales) or list(v.canales)
             plan.acciones.append(Accion(v, vigente, "reintentar", fallidos))
     return plan
+
+
+def proximo_momento(visitas: list[Visita], estado: EstadoEnvios, hitos: list[int], ahora: datetime) -> datetime | None:
+    """Próximo momento, posterior a `ahora`, en que una ejecución tiene algo para enviar.
+
+    - Cada hito pendiente que todavía no venció, a su hora.
+    - Si el hito vigente quedó con error o parcial, su reintento una hora
+      después (si para entonces la visita no empezó).
+    Lo que ya venció lo resolvió la ejecución de `ahora`: no se vuelve a
+    programar, así una falla que se repite no encadena ejecuciones.
+    """
+    candidatos: list[datetime] = []
+    for v in visitas:
+        if v.estado != "planificada" or ahora >= v.inicio:
+            continue
+        vencidos = []
+        for h in hitos:
+            momento = momento_hito(v.inicio, h)
+            if ahora >= momento:
+                vencidos.append(h)
+            elif estado.hito(v.id, h).estado == "pendiente":
+                candidatos.append(momento)
+        if vencidos and estado.hito(v.id, min(vencidos)).estado in ("parcial", "error"):
+            reintento = tiempo.sumar_horas(ahora, HORAS_REINTENTO)
+            if reintento < v.inicio:
+                candidatos.append(reintento)
+    return min(candidatos, default=None)

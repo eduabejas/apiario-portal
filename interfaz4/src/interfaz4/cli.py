@@ -65,6 +65,15 @@ def _resumen_github(texto: str) -> None:
             f.write(texto + "\n")
 
 
+def _salidas_github(valores: dict[str, str]) -> None:
+    """Salidas del paso para el workflow (GITHUB_OUTPUT)."""
+    destino = os.environ.get("GITHUB_OUTPUT")
+    if destino:
+        with open(destino, "a", encoding="utf-8") as f:
+            for clave, valor in valores.items():
+                f.write(f"{clave}={valor}\n")
+
+
 @app.callback()
 def principal(verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Más detalle en los logs.")] = False) -> None:
     logging.basicConfig(
@@ -189,7 +198,7 @@ def informe(
 
 @app.command()
 def ejecutar(ahora: OpcionAhora = None, base: OpcionBase = None) -> None:
-    """Envía los informes con hito vencido (pensado para correr cada hora)."""
+    """Envía los informes con hito vencido y dice cuándo hay que volver a correr."""
     from interfaz4.motor import Motor
     from interfaz4.publicar import exportar
 
@@ -204,6 +213,9 @@ def ejecutar(ahora: OpcionAhora = None, base: OpcionBase = None) -> None:
     texto = resultado.resumen()
     typer.echo(texto)
     _resumen_github("### Interfaz 4 — motor\n\n" + texto)
+    # Para interfaz4-espera.yml: hora local con desfase, legible en Actions.
+    proximo = tiempo.a_local(resultado.proximo).isoformat(timespec="seconds") if resultado.proximo else ""
+    _salidas_github({"proximo": proximo})
 
 
 @app.command("probar-fuentes")
@@ -274,11 +286,7 @@ def procesar_issue(
     }
     if salida:
         salida.write_text(json.dumps(info) + "\n", encoding="utf-8")
-    salida_gh = os.environ.get("GITHUB_OUTPUT")
-    if salida_gh:
-        with open(salida_gh, "a", encoding="utf-8") as f:
-            for k, v in info.items():
-                f.write(f"{k}={str(v).lower() if isinstance(v, bool) else (v or '')}\n")
+    _salidas_github({k: str(v).lower() if isinstance(v, bool) else (v or "") for k, v in info.items()})
     typer.echo(json.dumps(info, ensure_ascii=False))
 
 
