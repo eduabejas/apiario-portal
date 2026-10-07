@@ -211,6 +211,25 @@
               <svg class="mapa-icono" viewBox="0 0 16 16"><path d="M10.5 3l3 3-3 3" /><path d="M13.5 6H6a3.5 3.5 0 0 0 0 7h3" /></svg>
             </button>
           </div>
+          <div class="mapa-guardado" id="mapaGuardado" hidden>
+            <button type="button" class="mapa-btn" id="mapaDescartar" disabled>Descartar</button>
+            <div class="mapa-guardar-caja">
+              <button type="button" class="mapa-btn principal" id="mapaGuardar" disabled>Guardar</button>
+              <form class="mapa-popover" id="mapaPopover" hidden novalidate>
+                <label for="mapaCodigo">Código de acceso</label>
+                <input type="password" id="mapaCodigo" autocomplete="off" aria-describedby="mapaCodigoError" />
+                <p class="mp-error" id="mapaCodigoError" hidden></p>
+                <div class="mapa-popover-acciones">
+                  <button type="button" class="mapa-btn" id="mapaCodigoCancelar">Cancelar</button>
+                  <button type="submit" class="mapa-btn principal">Confirmar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="mapa-aviso" id="mapaAviso" hidden>
+            <span class="mapa-aviso-texto" id="mapaAvisoTexto"></span>
+            <span class="mapa-aviso-acciones" id="mapaAvisoAcciones"></span>
+          </div>
         </div>
 
         <div class="mapa-estado" id="mapaEstado" hidden></div>

@@ -16,6 +16,8 @@
   const IMAN = 0.15;                    // m
   const ZOOM_MIN = 10, ZOOM_MAX = 400;  // px por metro
   const MAX_HISTORIAL = 100;
+  const CLAVE_BORRADOR = 'bitacora.mapa.borrador';
+  const MAX_ITEMS = 500, MAX_JSON = 200000, LIMITE_COORD = 1000;
   const LADO_MIN = 0.10, SEGMENTO_MIN = 0.20, LARGO_MAX = 50; // m
   const DISTANCIA_ASA_ROT = 24;         // px desde el lado -y local
   const ESCALA_CODIGOS = 45;            // px/m desde la que se muestran los códigos
@@ -40,6 +42,8 @@
     vista: { tx: 0, ty: 0, s: 40 },   // translate (px) + escala (px/m)
     deshacer: [], rehacer: [],        // snapshots JSON (string) del arreglo items
     ultimoPaso: '[]',                 // snapshot del último paso confirmado
+    snapshotBase: '[]',               // items tal como están en el servidor (versionBase)
+    guardando: false,
     revisionesPorCodigo: new Map(),   // códigoNormalizado -> revisiones (más reciente primero)
     cargado: false,
     cargando: false,
@@ -70,6 +74,14 @@
   const historial = $('mapaHistorial');
   const btnDeshacer = $('mapaDeshacer');
   const btnRehacer = $('mapaRehacer');
+  const guardadoCaja = $('mapaGuardado');
+  const btnDescartar = $('mapaDescartar');
+  const btnGuardar = $('mapaGuardar');
+  const popover = $('mapaPopover');
+  const codigoInput = $('mapaCodigo');
+  const aviso = $('mapaAviso');
+  const avisoTexto = $('mapaAvisoTexto');
+  const avisoAcciones = $('mapaAvisoAcciones');
   const agregarCaja = $('mapaAgregarCaja');
   const btnAgregar = $('mapaAgregar');
   const menu = $('mapaMenu');
@@ -484,12 +496,15 @@
     const items = estado.mapa ? estado.mapa.items : [];
     const s = estado.vista.s;
     const vivos = new Set();
+    const invalidos = estado.modo === 'editar' ? idsInvalidos() : new Set();
     items.forEach((it) => {
       vivos.add(it.id);
       let n = nodos.get(it.id);
       if (n && n.tipo !== it.tipo) { n.g.remove(); n = null; }
       if (!n) { n = crearNodo(it); nodos.set(it.id, n); }
       const alerta = esColmena(it) && resumenSanitario(it.codigo).alerta;
+      const invalido = invalidos.has(it.id);
+      if (n.invalido !== invalido) { n.invalido = invalido; n.g.classList.toggle('invalido', invalido); }
       if (n.it === it && n.s === s && n.alerta === alerta) return;
       // Las etiquetas se miden después de estar en el documento.
       if (!n.g.parentNode) capas[TIPOS[it.tipo].capa].appendChild(n.g);
@@ -613,7 +628,7 @@
     ponerItems(items().map((it) => (it.id === nuevo.id ? nuevo : it)));
     pedirRender();
   }
-  const limitarCoord = (v) => limitar(v, -1000, 1000);
+  const limitarCoord = (v) => limitar(v, -LIMITE_COORD, LIMITE_COORD);
 
   /** Extremos de muros y vallas (salvo los del elemento `excluirId`). */
   function extremosDeSegmentos(excluirId) {
@@ -832,6 +847,7 @@
     estado.rehacer = [];
     estado.ultimoPaso = actual;
     actualizarBotonesHistorial();
+    alCambiarDocumento();
   }
   function restaurar(snap) {
     estado.ultimoPaso = snap;
@@ -841,6 +857,7 @@
     sincronizarPanel();
     actualizarBotonesHistorial();
     actualizarEstadoVacio();
+    alCambiarDocumento();
     pedirRender();
   }
   function deshacer() {
@@ -993,6 +1010,28 @@
     return errores;
   }
 
+  /** Ids de los elementos con errores (código vacío o repetido, etiqueta sin texto). */
+  function idsInvalidos() {
+    const porCodigo = new Map();
+    const malos = new Set();
+    items().forEach((it) => {
+      if (esColmena(it)) {
+        const clave = normalizar(it.codigo);
+        if (!clave) { malos.add(it.id); return; }
+        if (porCodigo.has(clave)) { malos.add(it.id); malos.add(porCodigo.get(clave)); }
+        else porCodigo.set(clave, it.id);
+      } else if (it.tipo === 'etiqueta' && !String(it.texto || '').trim()) {
+        malos.add(it.id);
+      }
+    });
+    return malos;
+  }
+
+  /** ¿Hay algún elemento con errores? (mientras haya, Guardar queda deshabilitado). */
+  function hayErrores() {
+    return idsInvalidos().size > 0;
+  }
+
   function mostrarError(input, mensaje) {
     const p = $(input.id + 'Error');
     input.classList.toggle('invalido', !!mensaje);
@@ -1002,6 +1041,7 @@
 
   function sincronizarPanel() {
     const it = estado.modo === 'editar' ? itemPorId(estado.seleccion) : null;
+    cont.classList.toggle('con-panel', !!it);
     if (!it) { panelProp.hidden = true; return; }
     panelProp.hidden = false;
     $('mpTitulo').textContent = TIPOS[it.tipo].nombre;
@@ -1030,6 +1070,7 @@
     const errores = erroresDe(it);
     mostrarError(campos.codigo, errores.codigo);
     mostrarError(campos.texto, errores.texto);
+    cont.style.setProperty('--alto-panel', panelProp.offsetHeight + 'px');
   }
 
   /** Aplica `cambios` al elemento seleccionado. `paso`: true = confirma un paso de deshacer. */
@@ -1038,6 +1079,7 @@
     if (!it) return;
     reemplazarItem(Object.assign({}, it, cambios));
     if (paso) confirmarPaso();
+    else alCambiarDocumento();
     sincronizarPanel();
   }
 
@@ -1093,25 +1135,379 @@
   $('mpEliminar').addEventListener('click', () => { if (estado.seleccion) borrar(estado.seleccion); });
 
   // =========================================================================
+  //  Validación del documento (mismas reglas que validarMapa_ en Codigo.gs)
+  // =========================================================================
+  function validarMapa(mapa) {
+    if (!mapa || typeof mapa !== 'object' || Array.isArray(mapa)) return { error: 'El mapa no tiene un formato válido.' };
+    if (mapa.esquema !== 1) return { error: 'Versión de esquema del mapa no soportada.' };
+    if (!Array.isArray(mapa.items)) return { error: 'El mapa no tiene lista de elementos.' };
+    if (mapa.items.length > MAX_ITEMS) return { error: 'El mapa supera el máximo de ' + MAX_ITEMS + ' elementos.' };
+    const ids = {}, codigos = {}, limpios = [];
+    for (let i = 0; i < mapa.items.length; i++) {
+      const r = limpiarItem(mapa.items[i], i, ids, codigos);
+      if (r.error) return r;
+      limpios.push(r.item);
+    }
+    const limpio = { esquema: 1, unidad: 'm', items: limpios };
+    if (JSON.stringify(limpio).length > MAX_JSON) return { error: 'El mapa es demasiado grande para guardarse.' };
+    return { mapa: limpio };
+  }
+
+  function limpiarItem(it, i, ids, codigos) {
+    let donde = 'Elemento ' + (i + 1);
+    if (!it || typeof it !== 'object') return { error: donde + ': formato inválido.' };
+    if (!Object.prototype.hasOwnProperty.call(TIPOS, it.tipo)) return { error: donde + ': tipo desconocido.' };
+    if (typeof it.codigo === 'string' && it.codigo.trim()) donde += ' (' + it.codigo.trim().slice(0, 20) + ')';
+    if (typeof it.id !== 'string' || it.id.length < 1 || it.id.length > 40) return { error: donde + ': identificador inválido.' };
+    if (ids[it.id]) return { error: donde + ': identificador repetido.' };
+    ids[it.id] = true;
+
+    const o = { id: it.id, tipo: it.tipo };
+    let err;
+    if (TIPOS[it.tipo].segmento) {
+      err = numerosValidos(it, ['x1', 'y1', 'x2', 'y2'], -LIMITE_COORD, LIMITE_COORD, o, donde, 'las coordenadas')
+        || textoValido(it, 'alias', 0, 40, o, donde, 'el alias');
+      return err || { item: o };
+    }
+    err = numerosValidos(it, ['x', 'y'], -LIMITE_COORD, LIMITE_COORD, o, donde, 'las coordenadas');
+    if (err) return err;
+    if (typeof it.rot !== 'number' || !isFinite(it.rot) || it.rot < 0 || it.rot >= 360) {
+      return { error: donde + ': la rotación debe estar entre 0 y 359,9°.' };
+    }
+    o.rot = it.rot;
+    if (it.tipo === 'etiqueta') {
+      err = textoValido(it, 'texto', 1, 40, o, donde, 'el texto');
+      if (err) return err;
+      if (['S', 'M', 'L'].indexOf(it.tam) === -1) return { error: donde + ': tamaño de etiqueta inválido.' };
+      o.tam = it.tam;
+      return { item: o };
+    }
+    err = numerosValidos(it, ['w', 'h'], 0.1, 50, o, donde, 'el ancho y el largo')
+      || textoValido(it, 'alias', 0, 40, o, donde, 'el alias');
+    if (err) return err;
+    if (esColmena(it)) {
+      err = textoValido(it, 'codigo', 1, 20, o, donde, 'el código');
+      if (err) return err;
+      const clave = normalizar(o.codigo);
+      if (codigos[clave]) return { error: donde + ': el código ' + o.codigo + ' está repetido.' };
+      codigos[clave] = true;
+      const fecha = it.reina_fecha == null ? '' : it.reina_fecha;
+      if (fecha !== '' && !(typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha))) {
+        return { error: donde + ': la fecha de la reina debe tener formato AAAA-MM-DD.' };
+      }
+      o.reina_fecha = fecha;
+      err = textoValido(it, 'notas', 0, 300, o, donde, 'las notas');
+      if (err) return err;
+    }
+    return { item: o };
+  }
+
+  function numerosValidos(it, nombres, min, max, o, donde, nombre) {
+    for (let i = 0; i < nombres.length; i++) {
+      const v = it[nombres[i]];
+      if (typeof v !== 'number' || !isFinite(v) || v < min || v > max) {
+        return { error: donde + ': ' + nombre + ' deben estar entre ' + coma(min) + ' y ' + coma(max) + ' m.' };
+      }
+      o[nombres[i]] = v;
+    }
+    return null;
+  }
+
+  function textoValido(it, campo, min, max, o, donde, nombre) {
+    let v = it[campo] == null ? '' : it[campo];
+    if (typeof v !== 'string') return { error: donde + ': ' + nombre + ' debe ser texto.' };
+    v = v.trim();
+    if (v.length < min) return { error: donde + ': falta ' + nombre + '.' };
+    if (v.length > max) return { error: donde + ': ' + nombre + ' supera los ' + max + ' caracteres.' };
+    o[campo] = v;
+    return null;
+  }
+
+  // =========================================================================
+  //  Avisos en la barra (sin confirm(): todo en página)
+  // =========================================================================
+  let avisoTimer = 0;
+
+  /** tipo: 'ok' | 'alerta' | 'neutro'. acciones: [{ texto, clase, accion }]. */
+  function mostrarAviso(tipo, texto, opciones) {
+    opciones = opciones || {};
+    clearTimeout(avisoTimer);
+    aviso.className = 'mapa-aviso ' + tipo;
+    aviso.setAttribute('role', tipo === 'alerta' ? 'alert' : 'status');
+    avisoTexto.textContent = texto;
+    avisoAcciones.textContent = '';
+    (opciones.acciones || []).forEach((a) => {
+      const b = nodoTexto('button', 'mapa-btn' + (a.clase ? ' ' + a.clase : ''), a.texto);
+      b.type = 'button';
+      b.addEventListener('click', a.accion);
+      avisoAcciones.appendChild(b);
+    });
+    aviso.hidden = false;
+    cont.classList.add('con-aviso');
+    if (opciones.duracion) avisoTimer = setTimeout(cerrarAviso, opciones.duracion);
+  }
+
+  function cerrarAviso() {
+    clearTimeout(avisoTimer);
+    aviso.hidden = true;
+    cont.classList.remove('con-aviso');
+  }
+
+  // =========================================================================
+  //  Guardado, conflictos, descarte y borrador local
+  // =========================================================================
+  function estaSucio() {
+    return estado.cargado && !estado.edicionBloqueada && snapshot() !== estado.snapshotBase;
+  }
+
+  function actualizarBotonGuardar() {
+    const sucio = estaSucio();
+    const errores = hayErrores();
+    btnGuardar.disabled = !sucio || errores || estado.guardando;
+    btnGuardar.textContent = estado.guardando ? 'Guardando…' : 'Guardar';
+    btnGuardar.title = errores ? 'Corregí los elementos marcados en rojo antes de guardar'
+      : (sucio ? '' : 'No hay cambios para guardar');
+    btnDescartar.disabled = !sucio || estado.guardando;
+  }
+
+  /** Se llama tras cada cambio del documento de trabajo. */
+  function alCambiarDocumento() {
+    actualizarBotonGuardar();
+    programarBorrador();
+  }
+
+  function quienGuarda() {
+    const campo = document.getElementById('registrado_por');
+    return campo ? campo.value.trim().slice(0, 80) : '';
+  }
+
+  function abrirPopoverCodigo(error) {
+    popover.hidden = false;
+    codigoInput.value = '';
+    mostrarError(codigoInput, error || '');
+    codigoInput.focus();
+  }
+  function cerrarPopoverCodigo() {
+    popover.hidden = true;
+    mostrarError(codigoInput, '');
+  }
+  popover.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const codigo = codigoInput.value;
+    if (!codigo) { mostrarError(codigoInput, 'Ingresá el código de acceso.'); return; }
+    B.codigoSesion = codigo; // solo en memoria
+    cerrarPopoverCodigo();
+    guardar();
+  });
+  $('mapaCodigoCancelar').addEventListener('click', cerrarPopoverCodigo);
+  popover.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); cerrarPopoverCodigo(); btnGuardar.focus(); }
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!popover.hidden && !popover.contains(e.target) && e.target !== btnGuardar) cerrarPopoverCodigo();
+  }, true);
+
+  /** baseForzada: versión a usar como base (al sobrescribir tras un conflicto). */
+  function guardar(baseForzada) {
+    if (estado.guardando || !estaSucio() || hayErrores()) return;
+    if (!B.codigoSesion) { abrirPopoverCodigo(); return; }
+    const validado = validarMapa({ esquema: 1, unidad: 'm', items: items() });
+    if (validado.error) { mostrarAviso('alerta', 'No se puede guardar: ' + validado.error); return; }
+
+    estado.guardando = true;
+    actualizarBotonGuardar();
+    const enviado = snapshot();
+    const cuerpo = {
+      accion: 'guardar_mapa',
+      codigo: B.codigoSesion,
+      base_version: baseForzada != null ? baseForzada : estado.versionBase,
+      guardado_por: quienGuarda(),
+      mapa: validado.mapa
+    };
+    // POST como "simple request" (sin cabeceras extra) para evitar preflight CORS.
+    fetch(B.url, { method: 'POST', body: JSON.stringify(cuerpo) })
+      .then((r) => r.json())
+      .then((res) => {
+        estado.guardando = false;
+        if (res && res.ok) { alGuardar(res.version, validado.mapa, enviado); return; }
+        const error = (res && res.error) || 'Error desconocido';
+        if (error === 'Código de acceso inválido.') {
+          B.codigoSesion = '';
+          abrirPopoverCodigo('Código de acceso inválido. Verificá e intentá de nuevo.');
+        } else if (error === 'conflicto') {
+          mostrarConflicto(res.version);
+        } else {
+          mostrarAviso('alerta', 'No se pudo guardar: ' + error, {
+            acciones: [{ texto: 'Cerrar', accion: cerrarAviso }]
+          });
+        }
+        actualizarBotonGuardar();
+      })
+      .catch((err) => {
+        estado.guardando = false;
+        mostrarAviso('alerta', 'No se pudo guardar: ' + (err && err.message ? err.message : String(err)), {
+          acciones: [{ texto: 'Reintentar', accion: () => { cerrarAviso(); guardar(baseForzada); } }]
+        });
+        actualizarBotonGuardar();
+      });
+  }
+
+  function alGuardar(version, limpio, enviado) {
+    estado.versionBase = version;
+    estado.snapshotBase = JSON.stringify(limpio.items);
+    // Si nada cambió mientras viajaba el pedido, se adopta la versión limpia del servidor.
+    if (snapshot() === enviado) {
+      ponerItems(limpio.items);
+      estado.ultimoPaso = snapshot();
+    }
+    borrarBorrador();
+    actualizarDatalist();
+    sincronizarPanel();
+    actualizarBotonGuardar();
+    pedirRender();
+    mostrarAviso('ok', 'Mapa guardado (versión ' + version + ')', { duracion: 3000 });
+  }
+
+  function mostrarConflicto(versionServidor) {
+    mostrarAviso('alerta', 'Otra persona guardó una versión más nueva.', {
+      acciones: [
+        { texto: 'Sobrescribir', accion: () => { cerrarAviso(); guardar(versionServidor); } },
+        { texto: 'Descartar mis cambios', accion: () => { cerrarAviso(); recargarDelServidor(); } }
+      ]
+    });
+  }
+
+  function recargarDelServidor() {
+    borrarBorrador();
+    estado.cargado = false;
+    cargarMapa();
+  }
+
+  /** Pide confirmación en página; `luego` corre después de descartar. */
+  function pedirDescartar(luego) {
+    mostrarAviso('neutro', '¿Descartar los cambios sin guardar?', {
+      acciones: [
+        { texto: 'Descartar', clase: 'peligro', accion: () => { descartarCambios(); if (luego) luego(); } },
+        { texto: 'Seguir editando', accion: cerrarAviso }
+      ]
+    });
+  }
+
+  function descartarCambios() {
+    cerrarAviso();
+    cerrarPopoverCodigo();
+    restaurar(estado.snapshotBase);
+    reiniciarHistorial();
+    borrarBorrador();
+    actualizarBotonGuardar();
+  }
+
+  btnGuardar.addEventListener('click', () => {
+    if (!popover.hidden) { cerrarPopoverCodigo(); return; }
+    guardar();
+  });
+  btnDescartar.addEventListener('click', () => pedirDescartar(null));
+
+  // ---- Borrador local (debounce 500 ms; el código nunca se guarda acá) -----
+  let borradorTimer = 0;
+
+  function programarBorrador() {
+    if (estado.modo !== 'editar') return;
+    clearTimeout(borradorTimer);
+    borradorTimer = setTimeout(guardarBorrador, 500);
+  }
+
+  function guardarBorrador() {
+    try {
+      if (!estaSucio()) { localStorage.removeItem(CLAVE_BORRADOR); return; }
+      localStorage.setItem(CLAVE_BORRADOR, JSON.stringify({ base_version: estado.versionBase, items: items(), ts: Date.now() }));
+    } catch (e) { /* sin espacio o almacenamiento bloqueado: el borrador es opcional */ }
+  }
+
+  function borrarBorrador() {
+    clearTimeout(borradorTimer);
+    try { localStorage.removeItem(CLAVE_BORRADOR); } catch (e) { /* idem */ }
+  }
+
+  function leerBorrador() {
+    try {
+      const b = JSON.parse(localStorage.getItem(CLAVE_BORRADOR) || 'null');
+      return b && typeof b === 'object' && Array.isArray(b.items) ? b : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function fechaHora(ts) {
+    const d = new Date(ts);
+    if (isNaN(d)) return '—';
+    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return (B.fechaBonita ? B.fechaBonita(iso) : iso) + ', ' + hora;
+  }
+
+  /** Al entrar a Editar: si hay un borrador de esta misma versión, se ofrece recuperarlo. */
+  function ofrecerBorrador() {
+    const b = leerBorrador();
+    if (!b || b.base_version !== estado.versionBase) return;
+    const validado = validarMapa({ esquema: 1, unidad: 'm', items: b.items });
+    if (validado.error) { borrarBorrador(); return; }
+    if (JSON.stringify(validado.mapa.items) === snapshot()) return;
+    mostrarAviso('neutro', 'Hay un borrador sin guardar del ' + fechaHora(b.ts) + '.', {
+      acciones: [
+        {
+          texto: 'Recuperar', clase: 'principal', accion: () => {
+            cerrarAviso();
+            ponerItems(validado.mapa.items);
+            if (estado.seleccion && !itemPorId(estado.seleccion)) estado.seleccion = null;
+            confirmarPaso();
+            sincronizarPanel();
+            actualizarEstadoVacio();
+            pedirRender();
+          }
+        },
+        { texto: 'Descartar', accion: () => { borrarBorrador(); cerrarAviso(); } }
+      ]
+    });
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    if (!estaSucio()) return;
+    e.preventDefault();
+    e.returnValue = ''; // aviso nativo del navegador
+  });
+
+  // =========================================================================
   //  Modo Ver / Editar y menú «+»
   // =========================================================================
   function ponerModo(modo) {
     if (modo === 'editar' && estado.edicionBloqueada) return;
+    // Salir de Editar con cambios sin guardar: misma barra que «Descartar».
+    if (modo === 'ver' && estado.modo === 'editar' && estaSucio()) {
+      pedirDescartar(() => ponerModo('ver'));
+      return;
+    }
+    const entrando = modo === 'editar' && estado.modo !== 'editar';
     estado.modo = modo;
     const editando = modo === 'editar';
     btnVer.setAttribute('aria-pressed', editando ? 'false' : 'true');
     btnEditar.setAttribute('aria-pressed', editando ? 'true' : 'false');
     historial.hidden = !editando;
+    guardadoCaja.hidden = !editando;
     agregarCaja.hidden = !editando;
     svg.classList.toggle('editando', editando);
     if (!editando) {
       cerrarMenu();
+      cerrarPopoverCodigo();
+      cerrarAviso();
       estado.seleccion = null;
     }
     nodos.forEach((n) => { n.it = null; }); // tabindex / aria-label según el modo
     sincronizarPanel();
+    actualizarBotonGuardar();
     actualizarEstadoVacio();
     pedirRender();
+    if (entrando) ofrecerBorrador();
   }
 
   function actualizarDisponibilidadEdicion() {
@@ -1193,8 +1589,10 @@
     estado.cargado = cargado;
     estado.edicionBloqueada = motivo;
     estado.seleccion = null;
+    estado.snapshotBase = snapshot();
     reiniciarHistorial();
     actualizarDisponibilidadEdicion();
+    actualizarBotonGuardar();
     pedirRender();
   }
 
@@ -1241,9 +1639,11 @@
     estado.cargado = true;
     estado.edicionBloqueada = null;
     if (estado.seleccion && !itemPorId(estado.seleccion)) estado.seleccion = null;
+    estado.snapshotBase = snapshot();
     reiniciarHistorial();
     actualizarDisponibilidadEdicion();
     sincronizarPanel();
+    actualizarBotonGuardar();
     actualizarDatalist();
     actualizarEstadoVacio();
     ajustar();
@@ -1564,6 +1964,7 @@
 
   // ---- Inicio --------------------------------------------------------------
   actualizarDisponibilidadEdicion();
+  actualizarBotonGuardar();
   if (B.revisiones) indexarRevisiones(B.revisiones);
   if (B.tab === 'mapa') alMostrar();
   else if (B.tab === 'nueva') cargarMapa();

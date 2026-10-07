@@ -205,6 +205,47 @@
 }
 .mapa-btn-icono:disabled { color: var(--m-gris); opacity: .5; cursor: not-allowed; }
 
+/* Descartar / Guardar, popover del código y avisos ------------------------ */
+.mapa-guardado { display: inline-flex; gap: 6px; align-items: center; }
+.mapa-btn {
+  height: 34px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--m-grilla-fuerte); background: var(--m-blanco); color: var(--m-tinta);
+  font-family: var(--sans); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.mapa-btn.principal { background: var(--m-musgo); border-color: var(--m-musgo); color: var(--m-blanco); }
+.mapa-btn.peligro { background: var(--m-rojo); border-color: var(--m-rojo); color: #fff; }
+.mapa-btn:disabled { opacity: .45; cursor: not-allowed; }
+.mapa-guardar-caja { position: relative; }
+.mapa-popover {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  width: 250px; padding: 12px;
+  background: var(--m-blanco); border: 1px solid var(--m-grilla-fuerte); border-radius: 8px;
+  box-shadow: var(--m-sombra);
+}
+.mapa-popover label { color: var(--m-gris); font-size: 12px; margin-bottom: 4px; }
+.mapa-popover input { padding: 7px 9px; font-size: 14px; background: var(--m-papel); color: var(--m-tinta); border-color: var(--m-grilla-fuerte); }
+.mapa-popover input:focus { border-color: var(--m-musgo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--m-musgo) 22%, transparent); }
+.mapa-popover input.invalido { border-color: var(--m-rojo); }
+.mapa-popover-acciones { display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px; }
+.mapa-aviso {
+  flex-basis: 100%; order: 10;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px;
+  padding: 8px 10px 8px 12px; border-radius: 8px;
+  background: var(--m-blanco); color: var(--m-tinta);
+  border: 1px solid var(--m-grilla-fuerte); box-shadow: var(--m-sombra);
+  font-size: 13px;
+}
+.mapa-aviso.ok { background: var(--m-musgo); border-color: var(--m-musgo); color: var(--m-blanco); }
+.mapa-aviso.alerta { background: var(--m-rojo); border-color: var(--m-rojo); color: #fff; }
+.mapa-aviso.alerta .mapa-btn { border-color: transparent; }
+.mapa-aviso-texto { flex: 1 1 180px; }
+.mapa-aviso-acciones { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.con-aviso .mapa-panel { top: 108px; max-height: calc(100% - 118px); }
+
+/* Elementos inválidos (código vacío o repetido, etiqueta sin texto) */
+.it.invalido .cuerpo { stroke: var(--m-rojo); stroke-dasharray: 3 2; }
+.it.invalido .texto { fill: var(--m-rojo); }
+
 /* Botón «+» (agregar) y su menú ------------------------------------------- */
 .mapa-agregar { position: relative; margin-bottom: 4px; }
 .mapa-agregar-btn {
@@ -243,7 +284,8 @@
 /* Panel de propiedades: overlay derecho (desktop) / hoja inferior (móvil) -- */
 .mapa-panel {
   position: absolute; z-index: 18;
-  top: 56px; right: 10px; width: 280px; max-height: calc(100% - 66px);
+  /* A la izquierda de la columna de controles (48 px + márgenes) para no taparla. */
+  top: 56px; right: 70px; width: 280px; max-height: calc(100% - 66px);
   display: flex; flex-direction: column;
   background: var(--m-blanco); color: var(--m-tinta);
   border: 1px solid var(--m-grilla-fuerte); border-radius: 8px;
@@ -283,6 +325,12 @@
   }
   .mapa-panel[hidden] { transform: translateY(12px); }
   .mapa-menu { min-width: 220px; }
+  .mapa-modo button { padding: 6px 10px; }
+  .mapa-btn { padding: 0 10px; }
+  .con-aviso .mapa-panel { top: auto; max-height: 58%; }
+  /* Con la hoja inferior abierta, los controles suben por encima de ella. */
+  .con-panel .mapa-controles { bottom: calc(var(--alto-panel, 0px) + 12px); }
+  .con-panel .mapa-referencias { visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
