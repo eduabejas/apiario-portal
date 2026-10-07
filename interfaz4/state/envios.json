@@ -1,7 +1,13 @@
 {
   "2026-10-08-produccion_miel-01": {
     "24": {
-      "estado": "pendiente"
+      "estado": "enviado",
+      "momento": "2026-10-07T01:54:10-03:00",
+      "canales": {
+        "correo": "ok",
+        "google_chat": "deshabilitado"
+      },
+      "snapshot": "state/snapshots/2026-10-08-produccion_miel-01_24.json"
     },
     "12": {
       "estado": "pendiente"
