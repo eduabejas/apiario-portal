@@ -33,6 +33,13 @@ frontend.
       GitHub Actions (ver `interfaz4/README.md`)
 - [ ] Interfaz 4: cargar los secretos SMTP en GitHub (paso manual, ver
       `interfaz4/README.md` → Puesta en marcha)
+- [x] `bitacoraderevision/` — Bitácora de revisión (registros, nueva
+      revisión con varroa/acaricida y pestaña «Mapa» del apiario), importada
+      de `ApisAgroecologicaPredio6Agosto/bitacoraderevision` y publicada en
+      `/bitacoraderevision/`
+- [ ] Bitácora de revisión: crear la hoja + implementar
+      `bitacoraderevision/apps-script/Codigo.gs` y pegar la URL en
+      `bitacoraderevision/assets/config.js` (paso manual, ver su README)
 
 ---
 
@@ -53,6 +60,9 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── interfaz3.html        # Bitácora de revisión de colmenas (placeholder)
 ├── interfaz4.html        # Contexto meteorológico de visitas (formulario + estado de informes)
 ├── interfaz4/            # Motor Python de Interfaz 4 (GitHub Actions, ver su README)
+├── bitacoraderevision/   # Bitácora de revisión + mapa del apiario: sitio autocontenido
+│                         # (HTML/CSS/JS sin build ni Tailwind, backend propio en
+│                         # apps-script/Codigo.gs; ver su README)
 ├── sw.js                 # Service worker de la bitácora (cache-first solo de su shell)
 ├── manifest.webmanifest  # PWA de la bitácora (start_url interfaz3.html)
 ├── assets/
@@ -85,7 +95,7 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── .nojekyll
 ├── .github/workflows/
 │   ├── deploy.yml        # Deploy Apps Script (colmena-portal/** → clasp)
-│   ├── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets/sw/manifest → Pages)
+│   ├── pages.yml         # Deploy GitHub Pages (index/interfaz*/assets/sw/manifest/bitacoraderevision → Pages)
 │   ├── interfaz4.yml     # Motor de Interfaz 4 (cada hora)
 │   ├── interfaz4-registro.yml  # Issues "Interfaz 4 · …" → datos/visitas.yaml
 │   ├── interfaz4-ci.yml  # Tests de Interfaz 4 (Python + node --test)

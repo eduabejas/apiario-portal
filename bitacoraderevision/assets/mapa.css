@@ -156,7 +156,7 @@
 
 /* Tooltip ------------------------------------------------------------------ */
 .mapa-tooltip {
-  position: absolute; z-index: 20;
+  position: absolute; z-index: 17; /* debajo del panel de propiedades (18) */
   min-width: 220px; max-width: 280px;
   padding: 10px 12px;
   background: var(--m-blanco); color: var(--m-tinta);
