@@ -59,7 +59,8 @@
         <div class="form-grid two">
           <div>
             <label for="numero_colmena">N.º de colmena <span class="req">*</span></label>
-            <input type="text" id="numero_colmena" name="numero_colmena" required inputmode="text" placeholder="Ej. 12" />
+            <input type="text" id="numero_colmena" name="numero_colmena" required inputmode="text" placeholder="Ej. C-01" list="codigosMapa" autocomplete="off" />
+            <datalist id="codigosMapa"></datalist>
           </div>
           <div>
             <label for="fecha">Fecha de revisión <span class="req">*</span></label>
@@ -126,6 +127,25 @@
           <div>
             <label for="celdas_reales">Celdas reales</label>
             <select id="celdas_reales" name="celdas_reales"><option value="">—</option><option>No</option><option>Enjambrazón</option><option>Supersedura</option><option>Emergencia</option></select>
+          </div>
+        </div>
+
+        <div class="section-title">Sanidad (varroa)</div>
+        <div class="form-grid two">
+          <div>
+            <label for="varroa_pct">Análisis de varroa (%)</label>
+            <input type="number" id="varroa_pct" name="varroa_pct" step="0.1" min="0" max="100" inputmode="decimal" placeholder="Ej. 2,4" />
+          </div>
+          <div>
+            <label for="acaricida">Acaricida aplicado</label>
+            <input type="text" id="acaricida" name="acaricida" list="acaricidasLista" maxlength="60" autocomplete="off" placeholder="Si se aplicó en esta revisión" />
+            <datalist id="acaricidasLista">
+              <option value="Ácido oxálico"></option>
+              <option value="Ácido fórmico"></option>
+              <option value="Timol"></option>
+              <option value="Amitraz"></option>
+              <option value="Flumetrina"></option>
+            </datalist>
           </div>
         </div>
 

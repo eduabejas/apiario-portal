@@ -31,6 +31,9 @@
     ["reina_vista", "Reina vista"], ["huevos", "Huevos"], ["temperamento", "Temperam."],
     ["sanidad", "Sanidad"], ["celdas_reales", "Celdas real."]
   ];
+  // Varroa (%): verde < 2, ámbar 2–<3, rojo ≥ 3 (mismo umbral de alerta que el mapa).
+  var VARROA_ATENCION = 2.0;
+  var VARROA_ALERTA = 3.0;
 
   /* ---------- Utilidades ---------- */
   function $(sel) { return document.querySelector(sel); }
@@ -103,12 +106,20 @@
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16M4 14h16"/></svg>';
   }
 
-  function metricaHTML(campo, label, valor) {
-    var q = (QUALITY[campo] && QUALITY[campo][valor]) || "none";
-    var cls = q === "none" ? "" : " q-" + q;
+  function metricaHTML(campo, label, valor, calidad) {
+    var q = calidad || (QUALITY[campo] && QUALITY[campo][valor]) || "none";
+    var punto = q === "sin-punto" ? "" : '<span class="dot' + (q === "none" ? "" : " q-" + q) + '"></span>';
     return '<div class="metric"><span class="k">' + esc(label) + '</span>' +
-      '<span class="v"><span class="dot' + cls + '"></span>' + esc(valor) + "</span></div>";
+      '<span class="v">' + punto + esc(valor) + "</span></div>";
   }
+
+  /** Número de varroa_pct o null si la revisión no trae análisis. */
+  function varroaNumero(v) {
+    if (v === "" || v == null) return null;
+    var n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+  function formatoPct(n) { return n.toFixed(1).replace(".", ",") + " %"; }
 
   function tarjetaHTML(r) {
     var metrics = "";
@@ -116,6 +127,12 @@
       var campo = METRICS[i][0], label = METRICS[i][1], valor = r[campo];
       if (valor) metrics += metricaHTML(campo, label, valor);
     }
+    var varroa = varroaNumero(r.varroa_pct);
+    if (varroa !== null) {
+      var qv = varroa >= VARROA_ALERTA ? "bad" : (varroa >= VARROA_ATENCION ? "mid" : "good");
+      metrics += metricaHTML("varroa_pct", "Varroa", formatoPct(varroa), qv);
+    }
+    if (r.acaricida) metrics += metricaHTML("acaricida", "Acaricida", r.acaricida, "sin-punto");
     var acciones = "";
     if (r.acciones && r.acciones.length) {
       acciones = '<div class="rev-acciones">';
@@ -182,6 +199,13 @@
       });
   }
 
+  /* ---------- Acaricida => marcar "Trató varroa" (no se desmarca al borrar) ---------- */
+  $("#acaricida").addEventListener("input", function () {
+    if (!this.value.trim()) return;
+    var chip = document.querySelector('#accionesChips input[value="Trató varroa"]');
+    if (chip) chip.checked = true;
+  });
+
   /* ---------- Guardar revisión ---------- */
   function mensaje(tipo, texto) {
     $("#formMsg").innerHTML = '<div class="msg ' + tipo + '">' + esc(texto) + "</div>";
@@ -195,8 +219,17 @@
     var fecha = $("#fecha").value;
     var codigo = $("#codigo").value;
 
+    var varroaInput = $("#varroa_pct");
+    var varroaTexto = varroaInput.value.trim();
+    var varroaN = Number(varroaTexto);
+
     if (!numero) { mensaje("err", "Indicá el número de colmena."); $("#numero_colmena").focus(); return; }
     if (!fecha) { mensaje("err", "Indicá la fecha de revisión."); $("#fecha").focus(); return; }
+    if (varroaInput.validity.badInput || (varroaTexto !== "" && (!isFinite(varroaN) || varroaN < 0 || varroaN > 100))) {
+      mensaje("err", "El análisis de varroa debe ser un número entre 0 y 100.");
+      varroaInput.focus();
+      return;
+    }
     if (!codigo) { mensaje("err", "Ingresá el código de acceso para poder guardar."); $("#codigo").focus(); return; }
     if (!configurado) { mensaje("err", "El sitio aún no está conectado a la hoja de Google (ver README)."); return; }
 
@@ -220,7 +253,9 @@
       celdas_reales: $("#celdas_reales").value,
       acciones: acciones,
       observaciones: $("#observaciones").value.trim(),
-      registrado_por: $("#registrado_por").value.trim()
+      registrado_por: $("#registrado_por").value.trim(),
+      varroa_pct: varroaTexto,
+      acaricida: $("#acaricida").value.trim().slice(0, 60)
     };
 
     var btn = $("#submitBtn");
