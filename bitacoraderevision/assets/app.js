@@ -70,19 +70,55 @@
     try { localStorage.setItem("tema", nuevo); } catch (e) {}
   });
 
-  /* ---------- Tabs ---------- */
-  var tabLista = $("#tabListaBtn"), tabForm = $("#tabFormBtn");
-  var panelLista = $("#panelLista"), panelForm = $("#panelForm");
-  function mostrarTab(cual) {
-    var esLista = cual === "lista";
-    tabLista.setAttribute("aria-selected", esLista ? "true" : "false");
-    tabForm.setAttribute("aria-selected", esLista ? "false" : "true");
-    panelLista.hidden = !esLista;
-    panelForm.hidden = esLista;
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  /* ---------- Contrato compartido con otros módulos (mapa.js) ---------- */
+  // El código de acceso vive solo en memoria: nunca en localStorage ni en la URL.
+  var BITACORA = window.BITACORA = window.BITACORA || {};
+  BITACORA.url = URL;
+  BITACORA.configurado = configurado;
+  BITACORA.codigoSesion = "";
+  BITACORA.esc = esc;
+  BITACORA.fechaBonita = fechaBonita;
+  BITACORA.revisiones = BITACORA.revisiones || null;
+
+  function emitir(nombre, detalle) {
+    document.dispatchEvent(new CustomEvent(nombre, { detail: detalle }));
   }
-  tabLista.addEventListener("click", function () { mostrarTab("lista"); });
-  tabForm.addEventListener("click", function () { mostrarTab("form"); });
+
+  /* ---------- Tabs ---------- */
+  var TABS = [
+    { btn: $("#tabListaBtn"), panel: $("#panelLista"), hash: "registros" },
+    { btn: $("#tabFormBtn"), panel: $("#panelForm"), hash: "nueva" },
+    { btn: $("#tabMapaBtn"), panel: $("#panelMapa"), hash: "mapa" }
+  ];
+  function tabPorHash(hash) {
+    for (var i = 0; i < TABS.length; i++) if (TABS[i].hash === hash) return TABS[i];
+    return null;
+  }
+  function mostrarTab(hash, opciones) {
+    var tab = tabPorHash(hash) || TABS[0];
+    opciones = opciones || {};
+    for (var i = 0; i < TABS.length; i++) {
+      var activa = TABS[i] === tab;
+      TABS[i].btn.setAttribute("aria-selected", activa ? "true" : "false");
+      TABS[i].panel.hidden = !activa;
+    }
+    BITACORA.tab = tab.hash;
+    if (!opciones.sinHash) history.replaceState(null, "", location.pathname + location.search + "#" + tab.hash);
+    if (!opciones.sinScroll) window.scrollTo({ top: 0, behavior: "smooth" });
+    if (tab.hash === "nueva" && !$("#codigo").value && BITACORA.codigoSesion) $("#codigo").value = BITACORA.codigoSesion;
+    emitir("bitacora:tab", tab.hash);
+  }
+  TABS.forEach(function (t) {
+    t.btn.addEventListener("click", function () { mostrarTab(t.hash); });
+  });
+  window.addEventListener("hashchange", function () {
+    var t = tabPorHash(location.hash.slice(1));
+    if (t && t.hash !== BITACORA.tab) mostrarTab(t.hash, { sinHash: true });
+  });
+  // Pestaña inicial según el hash (#registros, #nueva, #mapa). Los módulos que
+  // cargan después (mapa.js) leen BITACORA.tab al iniciar.
+  mostrarTab((tabPorHash(location.hash.slice(1)) || TABS[0]).hash, { sinHash: !location.hash, sinScroll: true });
+  BITACORA.mostrarTab = mostrarTab;
 
   /* ---------- Aviso de configuración pendiente ---------- */
   if (!configurado) {
@@ -192,6 +228,8 @@
         }
         TODAS = res.data || [];
         filtrar();
+        BITACORA.revisiones = TODAS;
+        emitir("bitacora:revisiones", TODAS);
       })
       .catch(function (err) {
         estado('<div class="state"><h3>No se pudieron cargar los registros</h3><p>' +
@@ -205,6 +243,8 @@
     var chip = document.querySelector('#accionesChips input[value="Trató varroa"]');
     if (chip) chip.checked = true;
   });
+
+  BITACORA.recargarRevisiones = cargar;
 
   /* ---------- Guardar revisión ---------- */
   function mensaje(tipo, texto) {
@@ -273,12 +313,13 @@
           return;
         }
         mensaje("ok", "Revisión de la colmena " + numero + " guardada correctamente.");
+        BITACORA.codigoSesion = codigo; // el mapa no lo vuelve a pedir en esta sesión
         var form = $("#revForm");
         form.reset();
         $("#codigo").value = codigo;   // conservamos el código para cargas seguidas
         $("#fecha").value = hoyISO();
         cargar();
-        setTimeout(function () { mostrarTab("lista"); }, 700);
+        setTimeout(function () { mostrarTab("registros"); }, 700);
       })
       .catch(function (err) {
         btn.disabled = false; btn.textContent = "Guardar revisión";
