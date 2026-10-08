@@ -10,6 +10,7 @@ on:
       - 'sw.js'
       - 'manifest.webmanifest'
       - 'interfaz4/publico/**'
+      - 'bitacoraderevision/**'
       - '.nojekyll'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -42,6 +43,10 @@ jobs:
           # (la página lo lee primero de raw.githubusercontent.com).
           mkdir -p _site/interfaz4
           cp -r interfaz4/publico _site/interfaz4/publico
+          # Bitácora de revisión + mapa: sitio autocontenido. El Codigo.gs se
+          # pega a mano en Apps Script, no hace falta publicarlo.
+          cp -r bitacoraderevision _site/bitacoraderevision
+          rm -rf _site/bitacoraderevision/apps-script
 
       - name: Configurar Pages
         uses: actions/configure-pages@v5

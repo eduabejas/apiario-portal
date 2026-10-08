@@ -2,6 +2,8 @@
 
 /* El motor Python de Interfaz 4 (plantillas, fixtures) no aporta clases al sitio. */
 @source not "../interfaz4";
+/* La bitácora de revisión tiene sus propios estilos (no usa Tailwind). */
+@source not "../bitacoraderevision";
 
 @theme {
   --color-miel: #E8A317;

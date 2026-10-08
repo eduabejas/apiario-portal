@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bitácora de Colmenas · Predio 6 Agosto</title>
+  <meta name="description" content="Registro de revisiones de colmenas del apiario Predio 6 Agosto — Apis Agroecológica." />
+  <meta name="theme-color" content="#b9791a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/mapa.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#b9791a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h16M4 12h16M4 16h16" />
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+          </svg>
+        </div>
+        <div>
+          <h1>Bitácora de Colmenas</h1>
+          <p>Apis Agroecológica · Predio 6 Agosto</p>
+        </div>
+      </div>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="themeToggle" type="button" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="notice" id="configNotice" hidden></div>
+
+    <div class="tabs" role="tablist" aria-label="Secciones">
+      <button class="tab" id="tabListaBtn" role="tab" aria-selected="true" aria-controls="panelLista">Registros</button>
+      <button class="tab" id="tabFormBtn" role="tab" aria-selected="false" aria-controls="panelForm">Nueva revisión</button>
+      <button class="tab" id="tabMapaBtn" role="tab" aria-selected="false" aria-controls="panelMapa">Mapa</button>
+    </div>
+
+    <!-- ============ PANEL: LISTA ============ -->
+    <section id="panelLista" role="tabpanel" aria-labelledby="tabListaBtn">
+      <div class="toolbar">
+        <div class="search">
+          <input type="search" id="buscar" placeholder="Buscar por número de colmena…" aria-label="Buscar por número de colmena" />
+        </div>
+        <span class="count" id="contador"></span>
+      </div>
+      <div id="listaContenedor">
+        <div class="state"><div class="spinner"></div><p>Cargando registros…</p></div>
+      </div>
+    </section>
+
+    <!-- ============ PANEL: FORMULARIO ============ -->
+    <section id="panelForm" role="tabpanel" aria-labelledby="tabFormBtn" hidden>
+      <form class="form-card" id="revForm" novalidate>
+        <div class="section-title">Identificación</div>
+        <div class="form-grid two">
+          <div>
+            <label for="numero_colmena">N.º de colmena <span class="req">*</span></label>
+            <input type="text" id="numero_colmena" name="numero_colmena" required inputmode="text" placeholder="Ej. C-01" list="codigosMapa" autocomplete="off" />
+            <datalist id="codigosMapa"></datalist>
+          </div>
+          <div>
+            <label for="fecha">Fecha de revisión <span class="req">*</span></label>
+            <input type="date" id="fecha" name="fecha" required />
+          </div>
+        </div>
+        <div class="form-grid two" style="margin-top:16px;">
+          <div>
+            <label for="apiario">Apiario / ubicación</label>
+            <input type="text" id="apiario" name="apiario" placeholder="Predio 6 Agosto" />
+          </div>
+          <div>
+            <label for="registrado_por">Registrado por</label>
+            <input type="text" id="registrado_por" name="registrado_por" placeholder="Tu nombre o iniciales" />
+          </div>
+        </div>
+
+        <div class="section-title">Evaluación de la colmena</div>
+        <div class="form-grid three">
+          <div>
+            <label for="postura">Postura</label>
+            <select id="postura" name="postura"><option value="">—</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+          </div>
+          <div>
+            <label for="estado_reina">Estado de la reina</label>
+            <select id="estado_reina" name="estado_reina"><option value="">—</option><option>Excelente</option><option>Regular</option><option>Mala</option></select>
+          </div>
+          <div>
+            <label for="cria_operculada">Cría operculada</label>
+            <select id="cria_operculada" name="cria_operculada"><option value="">—</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+          </div>
+          <div>
+            <label for="reservas_miel">Reservas de miel</label>
+            <select id="reservas_miel" name="reservas_miel"><option value="">—</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+          </div>
+          <div>
+            <label for="reservas_polen">Reservas de polen</label>
+            <select id="reservas_polen" name="reservas_polen"><option value="">—</option><option>Alta</option><option>Media</option><option>Baja</option></select>
+          </div>
+          <div>
+            <label for="poblacion">Población / fortaleza</label>
+            <select id="poblacion" name="poblacion"><option value="">—</option><option>Fuerte</option><option>Media</option><option>Débil</option></select>
+          </div>
+        </div>
+
+        <div class="section-title">Observación de campo</div>
+        <div class="form-grid three">
+          <div>
+            <label for="reina_vista">Reina vista</label>
+            <select id="reina_vista" name="reina_vista"><option value="">—</option><option>Sí</option><option>No</option><option>No buscada</option></select>
+          </div>
+          <div>
+            <label for="huevos">Presencia de huevos</label>
+            <select id="huevos" name="huevos"><option value="">—</option><option>Sí</option><option>No</option></select>
+          </div>
+          <div>
+            <label for="temperamento">Temperamento</label>
+            <select id="temperamento" name="temperamento"><option value="">—</option><option>Manso</option><option>Normal</option><option>Agresivo</option></select>
+          </div>
+          <div>
+            <label for="sanidad">Sanidad (varroa, polilla…)</label>
+            <select id="sanidad" name="sanidad"><option value="">—</option><option>Sin signos</option><option>Leve</option><option>Alta</option></select>
+          </div>
+          <div>
+            <label for="celdas_reales">Celdas reales</label>
+            <select id="celdas_reales" name="celdas_reales"><option value="">—</option><option>No</option><option>Enjambrazón</option><option>Supersedura</option><option>Emergencia</option></select>
+          </div>
+        </div>
+
+        <div class="section-title">Sanidad (varroa)</div>
+        <div class="form-grid two">
+          <div>
+            <label for="varroa_pct">Análisis de varroa (%)</label>
+            <input type="number" id="varroa_pct" name="varroa_pct" step="0.1" min="0" max="100" inputmode="decimal" placeholder="Ej. 2,4" />
+          </div>
+          <div>
+            <label for="acaricida">Acaricida aplicado</label>
+            <input type="text" id="acaricida" name="acaricida" list="acaricidasLista" maxlength="60" autocomplete="off" placeholder="Si se aplicó en esta revisión" />
+            <datalist id="acaricidasLista">
+              <option value="Ácido oxálico"></option>
+              <option value="Ácido fórmico"></option>
+              <option value="Timol"></option>
+              <option value="Amitraz"></option>
+              <option value="Flumetrina"></option>
+            </datalist>
+          </div>
+        </div>
+
+        <div class="section-title">Acciones realizadas</div>
+        <div class="chips" id="accionesChips">
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Alimentó" /><span>Alimentó</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Agregó alza" /><span>Agregó alza</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Trató varroa" /><span>Trató varroa</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Cambió reina" /><span>Cambió reina</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Dividió" /><span>Dividió</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Cosechó" /><span>Cosechó</span></label>
+          <label class="chip-check"><input type="checkbox" name="acciones" value="Limpieza" /><span>Limpieza</span></label>
+        </div>
+
+        <div class="section-title">Observaciones</div>
+        <div>
+          <textarea id="observaciones" name="observaciones" placeholder="Notas adicionales de la revisión…" maxlength="2000"></textarea>
+        </div>
+
+        <div class="section-title">Código de acceso</div>
+        <div class="gate">
+          <label for="codigo">Código para poder guardar <span class="req">*</span></label>
+          <input type="password" id="codigo" name="codigo" autocomplete="off" placeholder="Código compartido del equipo" />
+          <p class="hint">La lectura es pública, pero solo quien conoce el código puede registrar. Se verifica en el servidor.</p>
+        </div>
+
+        <div id="formMsg" aria-live="polite"></div>
+
+        <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+          <button type="submit" class="btn" id="submitBtn">Guardar revisión</button>
+          <button type="reset" class="btn ghost">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ PANEL: MAPA ============ -->
+    <section id="panelMapa" role="tabpanel" aria-labelledby="tabMapaBtn" hidden>
+      <div class="mapa" id="mapaLienzo">
+        <svg id="mapaSvg" role="application" aria-label="Mapa del apiario" tabindex="0">
+          <g id="capaGrilla"></g>
+          <g id="mundo">
+            <g id="capaLimites"></g>
+            <g id="capaBases"></g>
+            <g id="capaColmenas"></g>
+            <g id="capaTextos"></g>
+          </g>
+          <g id="capaSeleccion"></g>
+        </svg>
+
+        <div class="mapa-barra">
+          <div class="mapa-modo" role="group" aria-label="Modo del mapa">
+            <button type="button" id="mapaModoVer" aria-pressed="true">Ver</button>
+            <button type="button" id="mapaModoEditar" aria-pressed="false">Editar</button>
+          </div>
+          <span class="mapa-espacio"></span>
+          <div class="mapa-historial" id="mapaHistorial" hidden>
+            <button type="button" class="mapa-btn-icono" id="mapaDeshacer" aria-label="Deshacer" title="Deshacer (Ctrl+Z)" disabled>
+              <svg class="mapa-icono" viewBox="0 0 16 16"><path d="M5.5 3 2.5 6l3 3" /><path d="M2.5 6H10a3.5 3.5 0 0 1 0 7H7" /></svg>
+            </button>
+            <button type="button" class="mapa-btn-icono" id="mapaRehacer" aria-label="Rehacer" title="Rehacer (Ctrl+Shift+Z)" disabled>
+              <svg class="mapa-icono" viewBox="0 0 16 16"><path d="M10.5 3l3 3-3 3" /><path d="M13.5 6H6a3.5 3.5 0 0 0 0 7h3" /></svg>
+            </button>
+          </div>
+          <div class="mapa-guardado" id="mapaGuardado" hidden>
+            <button type="button" class="mapa-btn" id="mapaDescartar" disabled>Descartar</button>
+            <div class="mapa-guardar-caja">
+              <button type="button" class="mapa-btn principal" id="mapaGuardar" disabled>Guardar</button>
+              <form class="mapa-popover" id="mapaPopover" hidden novalidate>
+                <label for="mapaCodigo">Código de acceso</label>
+                <input type="password" id="mapaCodigo" autocomplete="off" aria-describedby="mapaCodigoError" />
+                <p class="mp-error" id="mapaCodigoError" hidden></p>
+                <div class="mapa-popover-acciones">
+                  <button type="button" class="mapa-btn" id="mapaCodigoCancelar">Cancelar</button>
+                  <button type="submit" class="mapa-btn principal">Confirmar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="mapa-aviso" id="mapaAviso" hidden>
+            <span class="mapa-aviso-texto" id="mapaAvisoTexto"></span>
+            <span class="mapa-aviso-acciones" id="mapaAvisoAcciones"></span>
+          </div>
+        </div>
+
+        <div class="mapa-estado" id="mapaEstado" hidden></div>
+
+        <div class="mapa-referencias" aria-hidden="true">
+          <svg class="mapa-brujula" viewBox="0 0 64 64" width="64" height="64">
+            <rect class="b-fondo" x="0.5" y="0.5" width="63" height="63" rx="10" />
+            <circle class="b-aro" cx="32" cy="32" r="19" />
+            <path class="b-norte" d="M32 15 L36.5 32 L27.5 32 Z" />
+            <path class="b-sur" d="M32 49 L36.5 32 L27.5 32 Z" />
+            <text class="b-letra" x="32" y="10.5">N</text>
+            <text class="b-letra" x="32" y="60.5">S</text>
+            <text class="b-letra" x="58" y="35.5">E</text>
+            <text class="b-letra" x="6" y="35.5">O</text>
+          </svg>
+          <div class="mapa-escala">
+            <svg id="mapaEscalaSvg" height="12" width="120"><path id="mapaEscalaRegla" d="" /></svg>
+            <span id="mapaEscalaTxt"></span>
+          </div>
+        </div>
+
+        <div class="mapa-controles">
+          <div class="mapa-agregar" id="mapaAgregarCaja" hidden>
+            <button type="button" class="mapa-agregar-btn" id="mapaAgregar" aria-label="Agregar elemento" title="Agregar elemento" aria-haspopup="menu" aria-expanded="false" aria-controls="mapaMenu">
+              <svg viewBox="0 0 16 16"><path d="M8 2.5v11M2.5 8h11" /></svg>
+            </button>
+            <div class="mapa-menu" id="mapaMenu" role="menu" aria-label="Agregar" hidden>
+              <button type="button" role="menuitem" data-tipo="colmena"><svg class="mapa-icono" viewBox="0 0 16 16"><rect x="4" y="3" width="8" height="10" rx=".5" /><path d="M6 13h4" /></svg>Colmena estándar (Langstroth)</button>
+              <button type="button" role="menuitem" data-tipo="nucleo"><svg class="mapa-icono" viewBox="0 0 16 16"><rect x="5.5" y="3" width="5" height="10" rx=".5" /><path d="M7 13h2" /></svg>Núcleo</button>
+              <button type="button" role="menuitem" data-tipo="pallet"><svg class="mapa-icono" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx=".5" /><path d="M2.5 6h11M2.5 10h11" /></svg>Pallet</button>
+              <button type="button" role="menuitem" data-tipo="muro"><svg class="mapa-icono" viewBox="0 0 16 16"><path d="M2 8h12" stroke-width="3.5" stroke-linecap="butt" /></svg>Muro</button>
+              <button type="button" role="menuitem" data-tipo="valla"><svg class="mapa-icono" viewBox="0 0 16 16"><path d="M2 8h12" stroke-dasharray="2.5 2" /><circle cx="2.5" cy="8" r="1" /><circle cx="8" cy="8" r="1" /><circle cx="13.5" cy="8" r="1" /></svg>Valla</button>
+              <button type="button" role="menuitem" data-tipo="etiqueta"><svg class="mapa-icono" viewBox="0 0 16 16"><path d="M3.5 3.5h9M8 3.5v9" /></svg>Etiqueta de texto</button>
+            </div>
+          </div>
+          <button type="button" class="mapa-zoom" id="mapaZoomMas" aria-label="Acercar" title="Acercar (+)">
+            <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" /></svg>
+          </button>
+          <button type="button" class="mapa-zoom" id="mapaZoomMenos" aria-label="Alejar" title="Alejar (−)">
+            <svg viewBox="0 0 16 16"><path d="M3 8h10" /></svg>
+          </button>
+          <button type="button" class="mapa-zoom" id="mapaAjustar" aria-label="Ajustar la vista al contenido" title="Ajustar vista (0)">
+            <svg viewBox="0 0 16 16"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg>
+          </button>
+        </div>
+
+        <aside class="mapa-panel" id="mapaPanel" aria-labelledby="mpTitulo" hidden>
+          <div class="mp-cabecera">
+            <h3 id="mpTitulo">Propiedades</h3>
+            <button type="button" class="mapa-btn-icono" id="mpCerrar" aria-label="Cerrar propiedades" title="Cerrar (Esc)">
+              <svg class="mapa-icono" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+            </button>
+          </div>
+          <div class="mp-campos">
+            <div class="mp-campo" data-tipos="colmena nucleo">
+              <label for="mpCodigo">Código <span class="req">*</span></label>
+              <input type="text" id="mpCodigo" maxlength="20" autocomplete="off" spellcheck="false" aria-describedby="mpCodigoError" />
+              <p class="mp-error" id="mpCodigoError" hidden></p>
+            </div>
+            <div class="mp-campo" data-tipos="etiqueta">
+              <label for="mpTexto">Texto <span class="req">*</span></label>
+              <input type="text" id="mpTexto" maxlength="40" autocomplete="off" aria-describedby="mpTextoError" />
+              <p class="mp-error" id="mpTextoError" hidden></p>
+            </div>
+            <div class="mp-campo" data-tipos="colmena nucleo pallet muro valla">
+              <label for="mpAlias">Alias</label>
+              <input type="text" id="mpAlias" maxlength="40" autocomplete="off" />
+            </div>
+            <div class="mp-campo" data-tipos="colmena nucleo">
+              <label for="mpReina">Fecha de la reina</label>
+              <input type="date" id="mpReina" aria-describedby="mpReinaAyuda" />
+              <p class="mp-ayuda" id="mpReinaAyuda">Nacimiento o introducción.</p>
+            </div>
+            <div class="mp-campo" data-tipos="colmena nucleo">
+              <label for="mpNotas">Notas</label>
+              <textarea id="mpNotas" maxlength="300" rows="2"></textarea>
+            </div>
+            <div class="mp-fila">
+              <div class="mp-campo" data-tipos="colmena nucleo pallet">
+                <label for="mpAncho">Ancho (m)</label>
+                <input type="number" id="mpAncho" step="0.05" min="0.1" max="50" inputmode="decimal" />
+              </div>
+              <div class="mp-campo" data-tipos="colmena nucleo pallet">
+                <label for="mpLargo">Largo (m)</label>
+                <input type="number" id="mpLargo" step="0.05" min="0.1" max="50" inputmode="decimal" />
+              </div>
+              <div class="mp-campo" data-tipos="muro valla">
+                <label for="mpLargoSegmento">Largo (m)</label>
+                <input type="number" id="mpLargoSegmento" step="0.05" min="0.2" max="50" inputmode="decimal" />
+              </div>
+            </div>
+            <div class="mp-fila">
+              <div class="mp-campo" data-tipos="colmena nucleo pallet etiqueta">
+                <label for="mpRotacion">Rotación (°)</label>
+                <input type="number" id="mpRotacion" step="15" min="0" max="359.9" inputmode="decimal" />
+              </div>
+              <div class="mp-campo" data-tipos="colmena nucleo">
+                <label for="mpPiquera">Piquera</label>
+                <input type="text" id="mpPiquera" readonly tabindex="-1" />
+              </div>
+              <div class="mp-campo" data-tipos="etiqueta">
+                <label for="mpTamano">Tamaño</label>
+                <select id="mpTamano"><option value="S">S</option><option value="M">M</option><option value="L">L</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="mp-pie">
+            <button type="button" class="btn ghost" id="mpDuplicar">Duplicar</button>
+            <button type="button" class="btn mapa-peligro" id="mpEliminar">Eliminar</button>
+          </div>
+        </aside>
+
+        <div class="mapa-tooltip" id="mapaTooltip" role="tooltip" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Bitácora de revisión de colmenas · Apis Agroecológica — Predio 6 Agosto ·
+    <a href="https://github.com/eduabejas/apiario-portal/tree/main/bitacoraderevision" target="_blank" rel="noopener">Código en GitHub</a>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/app.js"></script>
+  <script src="assets/mapa.js"></script>
+</body>
+</html>
