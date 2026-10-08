@@ -105,6 +105,11 @@ a { color: var(--accent-ink); }
 .brand h1 { font-size: 16px; margin: 0; line-height: 1.15; }
 .brand p { margin: 0; font-size: 11.5px; color: var(--ink-faint); }
 .top .spacer { flex: 1; }
+.volver {
+  flex: none; font-size: 13px; font-weight: 600; text-decoration: none;
+  color: var(--accent-ink); padding: 8px 4px;
+}
+.volver:hover { text-decoration: underline; }
 .icon-btn {
   width: 38px; height: 38px; border-radius: 9px; flex: none;
   background: var(--surface); border: 1px solid var(--line-strong); color: var(--ink-soft);
