@@ -1,8 +1,8 @@
 /* ===========================================================================
-   Bitácora de colmenas — lógica de la aplicación
-   Backend: Google Sheets vía Apps Script.
-   Lectura pública (GET) + escritura protegida por código (POST, validado en el
-   servidor).
+   Bitácora de colmenas — Registros y mapa (Interfaz 5)
+   Backend: Google Sheets vía Apps Script. Lectura pública (GET); las
+   revisiones se cargan desde el celular en la Interfaz 3 (interfaz3.html),
+   que escribe en la misma hoja con el código de acceso.
    =========================================================================== */
 (function () {
   "use strict";
@@ -16,7 +16,7 @@
     postura:         { "Alta": "good", "Media": "mid", "Baja": "bad" },
     estado_reina:    { "Excelente": "good", "Regular": "mid", "Mala": "bad" },
     cria_operculada: { "Alta": "good", "Media": "mid", "Baja": "bad" },
-    reservas_miel:   { "Alta": "good", "Media": "mid", "Baja": "bad" },
+    reservas_miel:   { "Alta": "good", "Media": "mid", "Baja": "bad", "Nula": "bad" },
     reservas_polen:  { "Alta": "good", "Media": "mid", "Baja": "bad" },
     poblacion:       { "Fuerte": "good", "Media": "mid", "Débil": "bad" },
     reina_vista:     { "Sí": "good", "No": "bad", "No buscada": "mid" },
@@ -49,10 +49,6 @@
     if (p.length < 3) return esc(iso);
     return parseInt(p[2], 10) + " " + MESES[parseInt(p[1], 10) - 1] + " " + p[0];
   }
-  function hoyISO() {
-    var h = new Date();
-    return h.getFullYear() + "-" + String(h.getMonth() + 1).padStart(2, "0") + "-" + String(h.getDate()).padStart(2, "0");
-  }
 
   /* ---------- Tema ---------- */
   var root = document.documentElement;
@@ -84,10 +80,15 @@
     document.dispatchEvent(new CustomEvent(nombre, { detail: detalle }));
   }
 
+  /* ---------- Registrar revisión: Interfaz 3 (pensada para el celular) ---------- */
+  var REGISTRAR = "../interfaz3.html" + location.search;
+  $("#registrarLink").href = REGISTRAR;
+  // Enlaces viejos a la pestaña «Nueva revisión» van directo a la Interfaz 3.
+  if (location.hash === "#nueva") { location.replace(REGISTRAR); return; }
+
   /* ---------- Tabs ---------- */
   var TABS = [
     { btn: $("#tabListaBtn"), panel: $("#panelLista"), hash: "registros" },
-    { btn: $("#tabFormBtn"), panel: $("#panelForm"), hash: "nueva" },
     { btn: $("#tabMapaBtn"), panel: $("#panelMapa"), hash: "mapa" }
   ];
   function tabPorHash(hash) {
@@ -105,17 +106,17 @@
     BITACORA.tab = tab.hash;
     if (!opciones.sinHash) history.replaceState(null, "", location.pathname + location.search + "#" + tab.hash);
     if (!opciones.sinScroll) window.scrollTo({ top: 0, behavior: "smooth" });
-    if (tab.hash === "nueva" && !$("#codigo").value && BITACORA.codigoSesion) $("#codigo").value = BITACORA.codigoSesion;
     emitir("bitacora:tab", tab.hash);
   }
   TABS.forEach(function (t) {
     t.btn.addEventListener("click", function () { mostrarTab(t.hash); });
   });
   window.addEventListener("hashchange", function () {
+    if (location.hash === "#nueva") { location.replace(REGISTRAR); return; }
     var t = tabPorHash(location.hash.slice(1));
     if (t && t.hash !== BITACORA.tab) mostrarTab(t.hash, { sinHash: true });
   });
-  // Pestaña inicial según el hash (#registros, #nueva, #mapa). Los módulos que
+  // Pestaña inicial según el hash (#registros, #mapa). Los módulos que
   // cargan después (mapa.js) leen BITACORA.tab al iniciar.
   mostrarTab((tabPorHash(location.hash.slice(1)) || TABS[0]).hash, { sinHash: !location.hash, sinScroll: true });
   BITACORA.mostrarTab = mostrarTab;
@@ -130,9 +131,6 @@
       "Mientras tanto, el sitio se ve pero no guarda ni lee datos. " +
       "Ver instrucciones en el README.";
   }
-
-  /* ---------- Fecha por defecto = hoy ---------- */
-  $("#fecha").value = hoyISO();
 
   /* ---------- Cargar y renderizar lista ---------- */
   var TODAS = [];
@@ -191,7 +189,7 @@
   function pintar(lista) {
     if (!lista.length) {
       estado('<div class="state">' + iconoColmena() + "<h3>Sin registros todavía</h3>" +
-        "<p>Cuando registres una revisión, aparecerá acá.</p></div>");
+        "<p>Las revisiones que se cargan desde la Interfaz 3 aparecen acá.</p></div>");
       $("#contador").textContent = "";
       return;
     }
@@ -237,95 +235,7 @@
       });
   }
 
-  /* ---------- Acaricida => marcar "Trató varroa" (no se desmarca al borrar) ---------- */
-  $("#acaricida").addEventListener("input", function () {
-    if (!this.value.trim()) return;
-    var chip = document.querySelector('#accionesChips input[value="Trató varroa"]');
-    if (chip) chip.checked = true;
-  });
-
   BITACORA.recargarRevisiones = cargar;
-
-  /* ---------- Guardar revisión ---------- */
-  function mensaje(tipo, texto) {
-    $("#formMsg").innerHTML = '<div class="msg ' + tipo + '">' + esc(texto) + "</div>";
-  }
-
-  $("#revForm").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    $("#formMsg").innerHTML = "";
-
-    var numero = $("#numero_colmena").value.trim();
-    var fecha = $("#fecha").value;
-    var codigo = $("#codigo").value;
-
-    var varroaInput = $("#varroa_pct");
-    var varroaTexto = varroaInput.value.trim();
-    var varroaN = Number(varroaTexto);
-
-    if (!numero) { mensaje("err", "Indicá el número de colmena."); $("#numero_colmena").focus(); return; }
-    if (!fecha) { mensaje("err", "Indicá la fecha de revisión."); $("#fecha").focus(); return; }
-    if (varroaInput.validity.badInput || (varroaTexto !== "" && (!isFinite(varroaN) || varroaN < 0 || varroaN > 100))) {
-      mensaje("err", "El análisis de varroa debe ser un número entre 0 y 100.");
-      varroaInput.focus();
-      return;
-    }
-    if (!codigo) { mensaje("err", "Ingresá el código de acceso para poder guardar."); $("#codigo").focus(); return; }
-    if (!configurado) { mensaje("err", "El sitio aún no está conectado a la hoja de Google (ver README)."); return; }
-
-    var acciones = [];
-    document.querySelectorAll('#accionesChips input:checked').forEach(function (c) { acciones.push(c.value); });
-
-    var datos = {
-      fecha: fecha,
-      numero_colmena: numero,
-      apiario: $("#apiario").value.trim(),
-      postura: $("#postura").value,
-      estado_reina: $("#estado_reina").value,
-      cria_operculada: $("#cria_operculada").value,
-      reservas_miel: $("#reservas_miel").value,
-      reservas_polen: $("#reservas_polen").value,
-      reina_vista: $("#reina_vista").value,
-      huevos: $("#huevos").value,
-      poblacion: $("#poblacion").value,
-      temperamento: $("#temperamento").value,
-      sanidad: $("#sanidad").value,
-      celdas_reales: $("#celdas_reales").value,
-      acciones: acciones,
-      observaciones: $("#observaciones").value.trim(),
-      registrado_por: $("#registrado_por").value.trim(),
-      varroa_pct: varroaTexto,
-      acaricida: $("#acaricida").value.trim().slice(0, 60)
-    };
-
-    var btn = $("#submitBtn");
-    btn.disabled = true; btn.textContent = "Guardando…";
-
-    // POST como "simple request" (sin cabeceras extra) para evitar preflight CORS.
-    fetch(URL, { method: "POST", body: JSON.stringify({ codigo: codigo, datos: datos }) })
-      .then(function (r) { return r.json(); })
-      .then(function (res) {
-        btn.disabled = false; btn.textContent = "Guardar revisión";
-        if (!res || !res.ok) {
-          var m = (res && res.error) || "";
-          if (/inv[aá]lido/i.test(m)) mensaje("err", "Código de acceso inválido. Verificá e intentá de nuevo.");
-          else mensaje("err", "No se pudo guardar: " + m);
-          return;
-        }
-        mensaje("ok", "Revisión de la colmena " + numero + " guardada correctamente.");
-        BITACORA.codigoSesion = codigo; // el mapa no lo vuelve a pedir en esta sesión
-        var form = $("#revForm");
-        form.reset();
-        $("#codigo").value = codigo;   // conservamos el código para cargas seguidas
-        $("#fecha").value = hoyISO();
-        cargar();
-        setTimeout(function () { mostrarTab("registros"); }, 700);
-      })
-      .catch(function (err) {
-        btn.disabled = false; btn.textContent = "Guardar revisión";
-        mensaje("err", "No se pudo guardar: " + (err && err.message ? err.message : String(err)));
-      });
-  });
 
   /* ---------- Inicio ---------- */
   cargar();

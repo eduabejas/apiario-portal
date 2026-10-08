@@ -13,7 +13,8 @@ frontend.
 - [x] `interfaz1.html` — Mapas y ambiente (terreno 3D + vista satelital,
       portado desde `colmena-portal/src/Interfaz1.html`)
 - [x] `interfaz2.html` — Datos y precios (placeholder restyleado)
-- [x] `interfaz3.html` — Bitácora de colmenas (revisión + vista QR, alpha1)
+- [x] `interfaz3.html` — Bitácora: registrar revisión desde el celular
+      (todos los campos de la Interfaz 5, outbox sin señal, QR, beta1)
 - [x] `assets/styles.css` — Tailwind v4 compilado y purgado
 - [x] `assets/alpine.min.js` — Alpine.js v3 (build `cdn.min.js`)
 - [x] `assets/data/terreno-3d.json`, `assets/data/overlay.json` — datos
@@ -24,8 +25,9 @@ frontend.
 - [ ] Activar Pages en Settings → Pages → Source: **GitHub Actions** (paso
       manual único, no se puede hacer desde acá)
 - [ ] Interfaz 2: leer/graficar hojas de `Apiario_DB` (Chart.js)
-- [x] ~~Interfaz 3: formulario de revisión → endpoint `doPost` en Apps Script~~
-      (`apps-script/bitacora/Code.gs`, deploy manual — ver pasos del alpha1)
+- [x] Interfaz 3 conectada al Apps Script de la Interfaz 5
+      (`bitacoraderevision/apps-script/Codigo.gs`, misma hoja `revisiones`);
+      se borró el `apps-script/bitacora/Code.gs` del alpha1
 - [x] `interfaz4.html` — Contexto meteorológico de visitas (ida: formulario →
       issue de GitHub; vuelta: estado e informes que publica el motor)
 - [x] `interfaz4/` — motor Python (Fases 0–6 de la spec): fuentes SMN WRF,
@@ -33,9 +35,9 @@ frontend.
       GitHub Actions (ver `interfaz4/README.md`)
 - [ ] Interfaz 4: cargar los secretos SMTP en GitHub (paso manual, ver
       `interfaz4/README.md` → Puesta en marcha)
-- [x] `bitacoraderevision/` — Interfaz 5: Bitácora de revisión (registros,
-      nueva revisión con varroa/acaricida y pestaña «Mapa» del apiario),
-      publicada en `/bitacoraderevision/` y enlazada desde el portal
+- [x] `bitacoraderevision/` — Interfaz 5: registros y pestaña «Mapa» del
+      apiario (la carga de revisiones pasó a la Interfaz 3), publicada en
+      `/bitacoraderevision/` y enlazada desde el portal
 - [x] Bitácora de revisión: hoja + `bitacoraderevision/apps-script/Codigo.gs`
       implementados y URL pegada en `bitacoraderevision/assets/config.js`
 
@@ -55,13 +57,15 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── index.html            # Portal (selección usuario + interfaz)
 ├── interfaz1.html        # Mapas / terreno 3D / satelital + crecida
 ├── interfaz2.html        # Datos, precios, gráficos (placeholder)
-├── interfaz3.html        # Bitácora de revisión de colmenas (placeholder)
+├── interfaz3.html        # Bitácora: registrar revisión desde el celular (PWA, sin señal)
 ├── interfaz4.html        # Contexto meteorológico de visitas (formulario + estado de informes)
 ├── interfaz4/            # Motor Python de Interfaz 4 (GitHub Actions, ver su README)
-├── bitacoraderevision/   # Interfaz 5: bitácora de revisión + mapa del apiario, autocontenida
-│                         # (HTML/CSS/JS sin build ni Tailwind, backend propio en
-│                         # apps-script/Codigo.gs; ver su README)
-├── sw.js                 # Service worker de la bitácora (cache-first solo de su shell)
+├── bitacoraderevision/   # Interfaz 5: registros + mapa del apiario (HTML/CSS/JS sin
+│                         # build ni Tailwind) y backend de la bitácora en
+│                         # apps-script/Codigo.gs; assets/config.js tiene la URL que
+│                         # usan la Interfaz 3 y la 5 (ver su README)
+├── sw.js                 # Service worker de la Interfaz 3 (cache-first de su shell,
+│                         # aunque la URL traiga ?u= / ?c=; config compartida stale-while-revalidate)
 ├── manifest.webmanifest  # PWA de la bitácora (start_url interfaz3.html)
 ├── assets/
 │   ├── styles.css        # Tailwind v4 compilado (npm run build:css)
@@ -72,7 +76,7 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 │   │   ├── topbar.js         # Chip de usuario en interfaz2/3/bitácora
 │   │   ├── bitacora-core.js  # Funciones puras de la bitácora (testeadas con node --test)
 │   │   ├── bitacora.js       # Store Alpine + outbox + fetch + animaciones GSAP
-│   │   ├── bitacora-config.js# ENDPOINT y APP_VERSION de la bitácora
+│   │   ├── bitacora-config.js# APP_VERSION; ENDPOINT = URL de bitacoraderevision/assets/config.js
 │   │   ├── interfaz4-core.js # Funciones puras de Interfaz 4 (testeadas con node --test)
 │   │   ├── interfaz4.js      # Componente Alpine de Interfaz 4
 │   │   └── interfaz4-config.js # Repo y URLs de datos de Interfaz 4
@@ -86,7 +90,6 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 │   │   └── overlay.json
 │   └── media/
 │       └── satelital.jpg
-├── apps-script/bitacora/Code.gs  # Backend de la bitácora (doGet/doPost), deploy manual aparte
 ├── tests/bitacora-core.test.js   # node --test
 ├── src/tailwind.css      # Fuente del build de Tailwind (paleta miel, tonos, glass, fondo animado)
 ├── package.json          # devDependencies: tailwindcss + cli; deps: alpinejs, gsap, qrcode-generator

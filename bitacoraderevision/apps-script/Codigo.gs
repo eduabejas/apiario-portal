@@ -12,6 +12,7 @@
  *      aquí, en el servidor. El código se guarda en las "Propiedades del script"
  *      (Script Properties), NUNCA en el sitio ni en GitHub.
  *        POST { codigo, datos }                        -> registra una revisión
+ *          (datos.id_cliente opcional: un reintento con el mismo id no duplica)
  *        POST { accion: 'guardar_mapa', codigo, ... }  -> guarda una versión del mapa
  *
  *  Puesta en marcha (ver README para el detalle):
@@ -185,7 +186,12 @@ function registrarRevision_(cuerpo) {
   var acaricida = String(d.acaricida == null ? '' : d.acaricida).trim().slice(0, 60);
 
   var sh = obtenerHoja_();
-  var id = Utilities.getUuid();
+  // La Interfaz 3 manda su propio id (id_cliente) y reintenta sin señal: si
+  // ese id ya está en la hoja, el envío anterior había llegado.
+  var idCliente = String(d.id_cliente || '');
+  var conIdCliente = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idCliente);
+  if (conIdCliente && existeId_(sh, idCliente)) return { ok: true, id: idCliente, duplicado: true };
+  var id = conIdCliente ? idCliente : Utilities.getUuid();
   var creado = new Date().toISOString();
   var acciones = Array.isArray(d.acciones) ? d.acciones.join('|') : '';
 
@@ -199,6 +205,15 @@ function registrarRevision_(cuerpo) {
   ]);
 
   return { ok: true, id: id };
+}
+
+/** ¿Hay una revisión con ese id (columna A)? */
+function existeId_(sh, id) {
+  var n = sh.getLastRow() - 1;
+  if (n < 1) return false;
+  var ids = sh.getRange(2, 1, n, 1).getValues();
+  for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return true;
+  return false;
 }
 
 /** '' (sin análisis) o un número 0–100 redondeado a 1 decimal. */

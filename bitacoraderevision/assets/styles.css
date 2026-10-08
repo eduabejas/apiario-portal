@@ -142,6 +142,8 @@ main { max-width: 1000px; margin: 0 auto; padding: 20px 18px calc(64px + env(saf
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
 .toolbar .search { flex: 1 1 200px; }
 .count { font-size: 12.5px; color: var(--ink-faint); font-family: var(--mono); }
+.btn.registrar { text-decoration: none; white-space: nowrap; }
+@media (max-width: 520px) { .btn.registrar { flex: 1 1 100%; } }
 
 /* Campos ------------------------------------------------------------------- */
 label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
@@ -170,34 +172,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .btn.ghost { background: var(--surface); color: var(--ink-soft); border: 1px solid var(--line-strong); }
 .btn.ghost:hover { background: var(--surface-2); }
 .btn.block { width: 100%; }
-
-/* Formulario --------------------------------------------------------------- */
-.form-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
-.form-grid { display: grid; gap: 16px; }
-@media (min-width: 620px) { .form-grid.two { grid-template-columns: 1fr 1fr; } .form-grid.three { grid-template-columns: 1fr 1fr 1fr; } }
-fieldset { border: 0; margin: 0; padding: 0; }
-.section-title { font-size: 12px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 26px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.section-title:first-child { margin-top: 0; }
-
-/* Checkboxes de acciones --------------------------------------------------- */
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip-check { position: relative; }
-.chip-check input { position: absolute; opacity: 0; pointer-events: none; }
-.chip-check span {
-  display: inline-block; padding: 7px 13px; border-radius: 999px; cursor: pointer;
-  background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--ink-soft); font-size: 13.5px;
-}
-.chip-check input:checked + span { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-.chip-check input:focus-visible + span { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-
-/* Bloque de código de acceso ---------------------------------------------- */
-.gate { margin-top: 8px; background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 16px; }
-.gate .hint { font-size: 12.5px; color: var(--ink-faint); margin: 6px 0 0; }
-
-/* Mensajes ----------------------------------------------------------------- */
-.msg { border-radius: var(--radius-sm); padding: 11px 14px; font-size: 13.5px; margin-top: 14px; }
-.msg.ok { background: var(--good-soft); color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 30%, transparent); }
-.msg.err { background: var(--bad-soft); color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent); }
 
 /* Lista de revisiones ------------------------------------------------------ */
 .cards { display: grid; gap: 12px; }

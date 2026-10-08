@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/styles.css">
   <style>[x-cloak] { display: none !important; }</style>
   <script src="assets/js/usuarios.js"></script>
+  <script src="bitacoraderevision/assets/config.js"></script>
   <script src="assets/js/bitacora-config.js"></script>
   <script src="assets/js/bitacora-core.js"></script>
   <script src="assets/js/topbar.js"></script>
@@ -97,6 +98,12 @@
         Modo demo — todavía no hay backend conectado, nada se envía de verdad
       </p>
 
+      <button type="button" x-show="necesitaCodigo && pendientesEnviables" x-cloak @click="abrirPendientes"
+              class="mb-4 block w-full rounded-xl border border-alerta bg-white px-4 py-3 text-left text-sm">
+        <span class="font-semibold text-alerta" x-text="pendientesEnviables + (pendientesEnviables === 1 ? ' revisión espera' : ' revisiones esperan') + ' el código de acceso'"></span>
+        <span class="block text-gris">Tocá para ingresarlo y enviarlas.</span>
+      </button>
+
       <!-- Pantalla: abrir colmena -->
       <section x-show="pantalla === 'abrir'" x-cloak>
         <h2 class="mb-1 text-lg font-bold">Abrir colmena</h2>
@@ -105,9 +112,12 @@
         <form @submit.prevent="confirmarColmenaInput">
           <input x-ref="inputColmena" x-model="colmenaInput" @input="validarInputColmena"
                  type="text" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"
-                 placeholder="A07" maxlength="12"
+                 placeholder="A07" maxlength="12" list="lista-codigos-mapa"
                  class="w-full rounded-xl border-2 border-borde bg-white px-4 py-5 text-center text-2xl font-extrabold tracking-widest tabular-nums focus:border-miel focus:outline-none">
           <p x-show="colmenaError" x-cloak x-text="colmenaError" class="mt-2 text-sm font-semibold text-critico"></p>
+          <datalist id="lista-codigos-mapa">
+            <template x-for="id in codigosMapa" :key="id"><option :value="id"></option></template>
+          </datalist>
           <button type="submit" class="btn-miel mt-4 w-full">Abrir</button>
         </form>
 
@@ -121,60 +131,164 @@
           </div>
         </div>
 
-        <a href="interfaz3.html?vista=qr" class="mt-10 block text-center text-xs text-gris underline">Generar QR para las tapas</a>
+        <div x-show="codigosMapa.length" x-cloak class="mt-7">
+          <p class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gris">
+            <span>Colmenas del mapa</span>
+            <span class="normal-case tracking-normal">✓ = revisada hoy</span>
+          </p>
+          <div class="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            <template x-for="id in codigosMapa" :key="id">
+              <button type="button" @click="abrirColmena(id)"
+                      class="min-h-12 rounded-xl border-2 px-1 text-sm font-bold tabular-nums"
+                      :class="revisadaHoy(id) ? 'border-ok bg-ok/10 text-ok' : 'border-borde bg-white'"
+                      :aria-label="'Colmena ' + id + (revisadaHoy(id) ? ', revisada hoy' : '')">
+                <span x-text="(revisadaHoy(id) ? '✓ ' : '') + id"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <a :href="linkRegistros" class="glass-card mt-8 flex items-center justify-between px-4 py-3 text-sm font-semibold">
+          <span>🗺️ Ver registros y mapa</span><span aria-hidden="true">→</span>
+        </a>
+        <a href="interfaz3.html?vista=qr" class="mt-6 block text-center text-xs text-gris underline">Generar QR para las tapas</a>
+        <button type="button" x-show="codigoRecordado" x-cloak @click="olvidarCodigoGuardado"
+                class="mx-auto mt-3 block text-xs text-gris underline">Olvidar el código de acceso en este celular</button>
       </section>
 
       <!-- Pantalla: revisión -->
       <section x-show="pantalla === 'revision'" x-cloak>
 
-        <div class="mb-5 flex items-center justify-center">
+        <div class="mb-5 flex items-center justify-center gap-3">
           <svg viewBox="0 0 44 44" class="h-14 w-14 -rotate-90" role="img" aria-hidden="true">
             <circle cx="22" cy="22" r="18" fill="none" stroke="var(--color-borde)" stroke-width="4"/>
             <circle id="anillo-progreso-valor" cx="22" cy="22" r="18" fill="none" stroke="var(--color-miel)"
                     stroke-width="4" stroke-linecap="round"
                     style="stroke-dasharray:113.097; stroke-dashoffset:113.097"/>
           </svg>
-          <span class="sr-only" x-text="completosN + ' de ' + totalCampos + ' campos completados'"></span>
+          <span class="text-sm text-gris"><b class="text-tinta tabular-nums" x-text="completosN + '/' + totalCampos"></b> campos evaluados</span>
         </div>
 
+        <!-- Última revisión (de la hoja compartida con la Interfaz 5) -->
         <div class="mb-5">
-          <template x-if="ultimaCargando">
+          <template x-if="!ultima && revisionesCargando">
             <div class="skeleton h-16 rounded-xl"></div>
           </template>
-          <template x-if="!ultimaCargando && ultima">
+          <template x-if="ultima">
             <div class="glass-card px-4 py-3 text-sm">
               <p class="mb-2 font-semibold">
-                Última revisión: <span x-text="tiempoRelativo(ultima.timestamp)"></span>
-                <span x-show="ultima.usuario"> · <span x-text="ultima.usuario"></span></span>
+                Última revisión: <span x-text="fechaBonita(ultima.fecha)"></span>
+                <span class="font-normal text-gris" x-text="'(' + cuandoFue(ultima.fecha) + ')'"></span>
+                <span x-show="ultima.registrado_por" class="font-normal text-gris"> · <span x-text="ultima.registrado_por"></span></span>
               </p>
               <div class="flex flex-wrap gap-1.5">
-                <template x-for="campo in CAMPOS" :key="campo.key">
-                  <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="toneDe(campo, ultima[campo.key])" x-text="ultima[campo.key] || '—'"></span>
+                <template x-for="chip in chipsDe(ultima)" :key="chip.k">
+                  <span class="rounded-full border px-2.5 py-1 text-xs font-semibold" :class="chip.clase" x-text="chip.texto"></span>
                 </template>
               </div>
+              <p x-show="ultima.acciones && ultima.acciones.length" class="mt-2 text-xs text-gris"
+                 x-text="'Acciones: ' + (Array.isArray(ultima.acciones) ? ultima.acciones.join(', ') : '')"></p>
+              <p x-show="ultima.observaciones" class="mt-1 text-xs text-gris" x-text="ultima.observaciones"></p>
             </div>
+          </template>
+          <template x-if="!ultima && !revisionesCargando && !modoDemo">
+            <p class="rounded-xl border border-dashed border-borde px-4 py-3 text-center text-sm text-gris">Sin revisiones anteriores de esta colmena.</p>
           </template>
         </div>
 
-        <div class="space-y-4">
-          <template x-for="campo in CAMPOS" :key="campo.key">
-            <div data-tarjeta-campo :id="'tarjeta-campo-' + campo.key" class="rounded-2xl border border-borde bg-white p-4">
-              <div class="mb-3 flex items-center justify-between">
-                <h3 class="font-semibold" x-text="campo.etiqueta"></h3>
-                <svg x-show="seleccion[campo.key]" x-cloak class="h-5 w-5 text-ok" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path class="check-tarjeta" d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="grid grid-cols-2 gap-2.5" role="radiogroup" :aria-label="campo.etiqueta" @keydown="manejarFlechas($event)">
-                <template x-for="opcion in campo.opciones" :key="opcion.valor">
-                  <button type="button" role="radio" :aria-checked="seleccion[campo.key] === opcion.valor"
-                          class="opcion-campo" :class="seleccion[campo.key] === opcion.valor ? tonoClases[opcion.tono] : ''"
-                          @click="elegirOpcion(campo.key, opcion.valor, $event)" x-text="opcion.valor"></button>
-                </template>
-              </div>
+        <!-- Datos de la visita -->
+        <div class="mb-6 grid grid-cols-2 gap-3 rounded-2xl border border-borde bg-white p-4">
+          <label class="text-sm font-semibold">Fecha
+            <input type="date" x-model="fecha" @change="cambiarFecha" :max="hoy" required
+                   class="mt-1 w-full rounded-lg border-2 px-2 py-2 text-base font-normal"
+                   :class="fecha && fecha !== hoy ? 'border-alerta' : 'border-borde'">
+          </label>
+          <label class="text-sm font-semibold">Apiario
+            <input type="text" x-model="apiario" @change="guardarApiario" maxlength="80" autocomplete="off"
+                   placeholder="Opcional" class="mt-1 w-full rounded-lg border-2 border-borde px-2 py-2 text-base font-normal">
+          </label>
+          <p x-show="fecha && fecha !== hoy" x-cloak class="col-span-2 -mt-1 text-xs font-semibold text-alerta">Ojo: la revisión no es de hoy.</p>
+          <p x-show="!fecha" x-cloak class="col-span-2 -mt-1 text-xs font-semibold text-critico">Indicá la fecha de la revisión.</p>
+          <p class="col-span-2 -mt-1 text-xs text-gris" x-show="usuario" x-text="'Registra: ' + (usuario ? usuario.nombre : '')"></p>
+        </div>
+
+        <!-- Evaluación y observación: botones grandes, todos opcionales -->
+        <template x-for="grupo in GRUPOS" :key="grupo.key">
+          <div class="mb-6">
+            <h2 class="mb-3 px-1 text-xs font-bold uppercase tracking-wide text-gris" x-text="grupo.titulo"></h2>
+            <div class="space-y-4">
+              <template x-for="campo in camposDe(grupo.key)" :key="campo.key">
+                <div data-tarjeta-campo :id="'tarjeta-campo-' + campo.key" class="rounded-2xl border border-borde bg-white p-4">
+                  <div class="mb-3 flex min-h-6 items-center justify-between gap-2">
+                    <h3 class="font-semibold" x-text="campo.etiqueta"></h3>
+                    <div class="flex items-center gap-2" x-show="seleccion[campo.key]" x-cloak>
+                      <button type="button" class="px-1 text-xs text-gris underline" @click="quitarOpcion(campo.key)"
+                              :aria-label="'Quitar ' + campo.etiqueta">Quitar</button>
+                      <svg class="h-5 w-5 text-ok" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path class="check-tarjeta" d="M4 10l4 4 8-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="grid gap-2.5" :class="campo.opciones.length === 3 ? 'grid-cols-3' : 'grid-cols-2'"
+                       role="radiogroup" :aria-label="campo.etiqueta" @keydown="manejarFlechas($event)">
+                    <template x-for="opcion in campo.opciones" :key="opcion.valor">
+                      <button type="button" role="radio" :aria-checked="seleccion[campo.key] === opcion.valor"
+                              class="opcion-campo" :class="seleccion[campo.key] === opcion.valor ? tonoClases[opcion.tono] : ''"
+                              @click="elegirOpcion(campo.key, opcion.valor, $event)" x-text="opcion.valor"></button>
+                    </template>
+                  </div>
+                </div>
+              </template>
             </div>
+          </div>
+        </template>
+
+        <!-- Sanidad (varroa) -->
+        <h2 class="mb-3 px-1 text-xs font-bold uppercase tracking-wide text-gris">Sanidad (varroa)</h2>
+        <div id="seccion-varroa" data-tarjeta-campo class="mb-6 space-y-5 rounded-2xl border border-borde bg-white p-4">
+          <div>
+            <label for="varroa-pct" class="mb-2 block font-semibold">Análisis de varroa (%)</label>
+            <div class="flex items-center gap-3">
+              <input id="varroa-pct" type="text" inputmode="decimal" x-model="varroaTexto" maxlength="5" autocomplete="off"
+                     placeholder="Ej. 2,4"
+                     class="w-32 rounded-xl border-2 px-3 py-3 text-center text-2xl font-extrabold tabular-nums focus:outline-none"
+                     :class="varroa.error ? 'border-critico' : 'border-borde focus:border-miel'">
+              <span x-show="varroa.tono" x-cloak class="rounded-full border px-3 py-1 text-sm font-bold"
+                    :class="varroa.tono ? tonoClases[varroa.tono] : ''" x-text="varroa.etiqueta"></span>
+            </div>
+            <p x-show="varroa.error" x-cloak class="mt-2 text-sm font-semibold text-critico" x-text="varroa.error"></p>
+            <p class="mt-2 text-xs text-gris">Vacío si no hiciste análisis. Alerta desde 3 %.</p>
+          </div>
+          <div>
+            <p class="mb-2 font-semibold">Acaricida aplicado</p>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="nombre in ACARICIDAS" :key="nombre">
+                <button type="button" class="chip-campo" :aria-pressed="(acaricida === nombre && !acaricidaOtro) ? 'true' : 'false'"
+                        @click="elegirAcaricida(nombre)" x-text="nombre"></button>
+              </template>
+              <button type="button" class="chip-campo" :aria-pressed="acaricidaOtro ? 'true' : 'false'" @click="elegirAcaricidaOtro">Otro…</button>
+            </div>
+            <input x-show="acaricidaOtro" x-cloak x-ref="acaricidaOtro" type="text" x-model="acaricida" @input="escribirAcaricidaOtro"
+                   maxlength="60" autocomplete="off" placeholder="¿Cuál?"
+                   class="mt-3 w-full rounded-xl border-2 border-borde px-3 py-2.5 text-base focus:border-miel focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Acciones realizadas -->
+        <h2 class="mb-3 px-1 text-xs font-bold uppercase tracking-wide text-gris">Acciones realizadas</h2>
+        <div class="mb-6 flex flex-wrap gap-2 rounded-2xl border border-borde bg-white p-4">
+          <template x-for="accion in ACCIONES" :key="accion">
+            <button type="button" class="chip-campo" :aria-pressed="acciones.indexOf(accion) !== -1 ? 'true' : 'false'"
+                    @click="alternarAccion(accion)" x-text="accion"></button>
           </template>
         </div>
+
+        <!-- Observaciones -->
+        <h2 class="mb-3 px-1 text-xs font-bold uppercase tracking-wide text-gris">Observaciones</h2>
+        <textarea x-model="observaciones" rows="3" maxlength="2000" placeholder="Notas de la revisión…"
+                  class="mb-4 w-full rounded-2xl border-2 border-borde bg-white px-4 py-3 text-base focus:border-miel focus:outline-none"></textarea>
+
+        <p x-show="errorEnvio" x-cloak class="mb-4 rounded-xl bg-critico px-4 py-3 text-sm font-semibold text-white" x-text="errorEnvio"></p>
       </section>
 
       <!-- Pantalla: éxito -->
@@ -190,6 +304,7 @@
           <button type="button" x-show="siguienteColmenaId" x-cloak class="btn-miel" @click="siguienteColmena"
                   x-text="'Siguiente colmena (' + siguienteColmenaId + ')'"></button>
           <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="otraColmena">Otra colmena</button>
+          <a :href="linkRegistros" class="mt-2 text-sm font-semibold text-miel-dark underline">Ver registros y mapa</a>
         </div>
       </section>
     </div>
@@ -198,9 +313,9 @@
     <div x-show="pantalla === 'revision'" x-cloak class="fixed inset-x-0 bottom-0 z-30 px-4 pb-4 safe-bottom">
       <button id="btn-guardar" type="button"
               class="btn-miel relative mx-auto block w-full max-w-xl overflow-hidden"
-              :disabled="completosN < totalCampos" @click="abrirResumen">
+              :disabled="!puedeGuardar" @click="abrirResumen">
         <span class="brillo pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-white/40"></span>
-        <span x-text="'Guardar revisión · ' + completosN + '/' + totalCampos"></span>
+        <span x-text="enviando ? 'Guardando…' : (hayDatos ? 'Guardar revisión · ' + completosN + '/' + totalCampos : 'Cargá al menos un dato')"></span>
       </button>
     </div>
 
@@ -208,15 +323,30 @@
     <div id="hoja-resumen" x-show="mostrarResumen" x-cloak class="hoja-inferior" role="dialog" aria-modal="true" aria-label="Confirmar revisión">
       <div class="fondo" @click="cerrarResumen"></div>
       <div class="panel">
-        <h3 class="mb-3 text-lg font-bold">Confirmar revisión</h3>
-        <ul class="mb-5 space-y-2 text-sm">
-          <template x-for="campo in CAMPOS" :key="campo.key">
-            <li class="flex items-center justify-between border-b border-borde pb-2">
-              <span class="text-gris" x-text="campo.etiqueta"></span>
-              <span class="font-semibold" x-text="seleccion[campo.key]"></span>
+        <h3 class="mb-3 text-lg font-bold" x-text="'Confirmar revisión · ' + (colmenaId || '')"></h3>
+        <ul class="mb-3 space-y-2 text-sm">
+          <template x-for="fila in resumenLista" :key="fila.etiqueta">
+            <li class="flex items-start justify-between gap-4 border-b border-borde pb-2">
+              <span class="shrink-0 text-gris" x-text="fila.etiqueta"></span>
+              <span class="text-right font-semibold break-words" x-text="fila.valor"></span>
             </li>
           </template>
         </ul>
+        <p x-show="completosN < totalCampos" class="mb-5 text-xs text-gris"
+           x-text="(totalCampos - completosN) + (totalCampos - completosN === 1 ? ' campo quedó' : ' campos quedaron') + ' sin evaluar.'"></p>
+
+        <div x-show="pideCodigo" class="mb-5 rounded-xl border border-borde bg-white p-3">
+          <label for="codigo-resumen" class="text-sm font-semibold">Código de acceso</label>
+          <input id="codigo-resumen" x-ref="codigoResumen" type="password" x-model="codigoInput" autocomplete="off"
+                 @keydown.enter.prevent="confirmarGuardado"
+                 class="mt-1 w-full rounded-lg border-2 px-3 py-2.5 text-base"
+                 :class="codigoError ? 'border-critico' : 'border-borde'" placeholder="Código del equipo">
+          <label class="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" x-model="recordarCodigo" class="h-5 w-5 accent-miel"> Recordar en este celular
+          </label>
+          <p x-show="codigoError" class="mt-2 text-sm font-semibold text-critico" x-text="codigoError"></p>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="cerrarResumen">Editar</button>
           <button type="button" class="btn-miel" @click="confirmarGuardado">Confirmar</button>
@@ -237,14 +367,31 @@
                 <span class="font-semibold" x-text="registro.colmena"></span>
                 <span class="text-xs text-gris" x-text="tiempoRelativo(registro.timestamp)"></span>
               </div>
-              <p class="text-xs" :class="registro.estado === 'rechazado' ? 'text-critico' : 'text-gris'"
-                 x-text="registro.estado === 'rechazado' ? ('Rechazado: ' + (registro.motivo || 'dato inválido')) : 'Pendiente de señal'"></p>
+              <div class="flex items-center justify-between gap-3">
+                <p class="text-xs" :class="registro.estado === 'rechazado' ? 'text-critico' : 'text-gris'"
+                   x-text="registro.estado === 'rechazado' ? ('Rechazado: ' + (registro.motivo || 'dato inválido')) : (necesitaCodigo ? 'Espera el código de acceso' : 'Pendiente de señal')"></p>
+                <button type="button" x-show="registro.estado === 'rechazado'" class="text-xs font-semibold text-critico underline"
+                        @click="descartarPendiente(registro.id)">Descartar</button>
+              </div>
             </li>
           </template>
         </ul>
+
+        <div x-show="pideCodigo && pendientesEnviables" class="mb-5 rounded-xl border border-borde bg-white p-3">
+          <label for="codigo-pendientes" class="text-sm font-semibold">Código de acceso</label>
+          <input id="codigo-pendientes" type="password" x-model="codigoInput" autocomplete="off"
+                 @keydown.enter.prevent="reintentarAhora"
+                 class="mt-1 w-full rounded-lg border-2 px-3 py-2.5 text-base"
+                 :class="codigoError ? 'border-critico' : 'border-borde'" placeholder="Código del equipo">
+          <label class="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" x-model="recordarCodigo" class="h-5 w-5 accent-miel"> Recordar en este celular
+          </label>
+          <p x-show="codigoError" class="mt-2 text-sm font-semibold text-critico" x-text="codigoError"></p>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <button type="button" class="rounded-xl border-2 border-borde bg-white py-3 font-semibold" @click="cerrarPendientes">Cerrar</button>
-          <button type="button" class="btn-miel" :disabled="!pendientes.length" @click="reintentarAhora">Reintentar ahora</button>
+          <button type="button" class="btn-miel" :disabled="!pendientesEnviables" @click="reintentarAhora">Enviar ahora</button>
         </div>
       </div>
     </div>
