@@ -1,7 +1,8 @@
 # Bitácora de revisión de colmenas
 
-Sitio web para registrar las revisiones (aperturas) de cada colmena del apiario
-**Predio 6 Agosto — Apis Agroecológica**.
+Sitio web para registrar las revisiones (aperturas) de cada colmena y dibujar el
+mapa del apiario. Es la **Interfaz 5** del
+[Portal Apiario](https://eduabejas.github.io/apiario-portal/).
 
 - **Lectura pública:** cualquiera puede consultar las revisiones.
 - **Escritura protegida:** solo quien conoce el **código de acceso** puede registrar.
@@ -11,9 +12,10 @@ Todo es **gratuito**: GitHub Pages para el sitio y Google Sheets como base de da
 No hace falta tarjeta ni pagar ningún servicio.
 
 Vive en la carpeta `bitacoraderevision/` del repo
-[`eduabejas/apiario-portal`](https://github.com/eduabejas/apiario-portal) (se
-importó de `ApisAgroecologicaPredio6Agosto/bitacoraderevision`) y se publica en
-<https://eduabejas.github.io/apiario-portal/bitacoraderevision/>.
+[`eduabejas/apiario-portal`](https://github.com/eduabejas/apiario-portal) y se
+publica en <https://eduabejas.github.io/apiario-portal/bitacoraderevision/>. Se
+entra desde el portal eligiendo usuario e **Interfaz 5**, y el enlace «← Portal»
+de la cabecera vuelve al inicio.
 
 ## Arquitectura
 
@@ -52,7 +54,7 @@ Cada pestaña tiene su propio enlace: `…/#registros`, `…/#nueva` y `…/#map
 ### 2. Fijar el código de acceso
 1. En el editor de Apps Script, en la función `configurarCodigo()`, cambiá
    `CAMBIA-ESTE-CODIGO` por tu código real (recomendado: 8+ caracteres con letras y
-   números, ej. `Colmena6Agosto2026`).
+   números, ej. `ColmenaMiel2026`).
 2. Arriba, elegí la función **`configurarCodigo`** en el desplegable y presioná
    **Ejecutar** ▶. La primera vez te pedirá **autorizar** los permisos (es normal:
    es tu propio script sobre tu propia hoja) → Aceptá.
@@ -157,4 +159,4 @@ guardó), así queda el historial completo del plano.
 - Fotos por revisión.
 
 ---
-Proyecto de **Apis Agroecológica · Predio 6 Agosto**.
+Parte del [Portal Apiario](https://eduabejas.github.io/apiario-portal/).

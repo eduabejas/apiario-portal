@@ -12,7 +12,7 @@ enrutamiento y las reglas de diseño.
 - `interfaz4.html` — contexto meteorológico de visitas: registrar visitas y
   ver los informes que el motor ([`interfaz4/`](interfaz4/README.md), Python
   en GitHub Actions) envía por correo 24 h y 12 h antes
-- `bitacoraderevision/` — bitácora de revisión de colmenas con registros,
+- `bitacoraderevision/` — **Interfaz 5**: bitácora de revisión de colmenas con registros,
   nueva revisión (incluye varroa y acaricida) y el **mapa del apiario**; sitio
   autocontenido con su propio backend en Google Sheets
   (<https://eduabejas.github.io/apiario-portal/bitacoraderevision/>, ver

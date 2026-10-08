@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  *  Bitácora de revisión de colmenas — Backend con Google Sheets
- *  Apis Agroecológica · Predio 6 Agosto
+ *  Portal Apiario
  * ----------------------------------------------------------------------------
  *  Este script convierte una Hoja de cálculo de Google en el backend del sitio.
  *

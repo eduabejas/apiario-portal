@@ -33,13 +33,11 @@ frontend.
       GitHub Actions (ver `interfaz4/README.md`)
 - [ ] Interfaz 4: cargar los secretos SMTP en GitHub (paso manual, ver
       `interfaz4/README.md` → Puesta en marcha)
-- [x] `bitacoraderevision/` — Bitácora de revisión (registros, nueva
-      revisión con varroa/acaricida y pestaña «Mapa» del apiario), importada
-      de `ApisAgroecologicaPredio6Agosto/bitacoraderevision` y publicada en
-      `/bitacoraderevision/`
-- [ ] Bitácora de revisión: crear la hoja + implementar
-      `bitacoraderevision/apps-script/Codigo.gs` y pegar la URL en
-      `bitacoraderevision/assets/config.js` (paso manual, ver su README)
+- [x] `bitacoraderevision/` — Interfaz 5: Bitácora de revisión (registros,
+      nueva revisión con varroa/acaricida y pestaña «Mapa» del apiario),
+      publicada en `/bitacoraderevision/` y enlazada desde el portal
+- [x] Bitácora de revisión: hoja + `bitacoraderevision/apps-script/Codigo.gs`
+      implementados y URL pegada en `bitacoraderevision/assets/config.js`
 
 ---
 
@@ -60,7 +58,7 @@ publica en Pages (el workflow solo copia `index.html`, `interfaz*.html` y
 ├── interfaz3.html        # Bitácora de revisión de colmenas (placeholder)
 ├── interfaz4.html        # Contexto meteorológico de visitas (formulario + estado de informes)
 ├── interfaz4/            # Motor Python de Interfaz 4 (GitHub Actions, ver su README)
-├── bitacoraderevision/   # Bitácora de revisión + mapa del apiario: sitio autocontenido
+├── bitacoraderevision/   # Interfaz 5: bitácora de revisión + mapa del apiario, autocontenida
 │                         # (HTML/CSS/JS sin build ni Tailwind, backend propio en
 │                         # apps-script/Codigo.gs; ver su README)
 ├── sw.js                 # Service worker de la bitácora (cache-first solo de su shell)
