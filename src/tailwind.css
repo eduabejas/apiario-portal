@@ -158,6 +158,28 @@
     transition: transform 0.15s, background-color 0.15s, border-color 0.15s, color 0.15s;
   }
   .opcion-campo:active { transform: scale(0.97); }
+
+  /* Chip táctil de elección libre (acaricida, acciones): aria-pressed marca
+     el estado elegido. */
+  .chip-campo {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 2px solid var(--color-borde);
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-tinta);
+    touch-action: manipulation;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+  }
+  .chip-campo:active { transform: scale(0.97); }
+  .chip-campo[aria-pressed="true"] {
+    border-color: var(--color-miel);
+    background: var(--color-miel-100);
+    color: var(--color-miel-dark);
+  }
+  .chip-campo[aria-pressed="true"]::before { content: "✓ "; }
   .opcion-campo .check-path {
     stroke-dasharray: 20;
     stroke-dashoffset: 20;

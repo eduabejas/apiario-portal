@@ -1276,9 +1276,10 @@
     programarBorrador();
   }
 
+  /** Nombre del usuario elegido en el portal (?u=), si lo hay. */
   function quienGuarda() {
-    const campo = document.getElementById('registrado_por');
-    return campo ? campo.value.trim().slice(0, 80) : '';
+    const usuario = window.apiarioUsuarioActual ? window.apiarioUsuarioActual() : null;
+    return usuario ? String(usuario.nombre).slice(0, 80) : '';
   }
 
   function abrirPopoverCodigo(error) {
@@ -1361,7 +1362,6 @@
       estado.ultimoPaso = snapshot();
     }
     borrarBorrador();
-    actualizarDatalist();
     sincronizarPanel();
     actualizarBotonGuardar();
     pedirRender();
@@ -1644,23 +1644,8 @@
     actualizarDisponibilidadEdicion();
     sincronizarPanel();
     actualizarBotonGuardar();
-    actualizarDatalist();
     actualizarEstadoVacio();
     ajustar();
-  }
-
-  /** Sugerencias de #numero_colmena con los códigos de colmenas y núcleos. */
-  function actualizarDatalist() {
-    const dl = document.getElementById('codigosMapa');
-    if (!dl) return;
-    const codigos = estado.mapa.items.filter(esColmena).map((it) => it.codigo)
-      .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
-    dl.textContent = '';
-    codigos.forEach((c) => {
-      const o = document.createElement('option');
-      o.value = c;
-      dl.appendChild(o);
-    });
   }
 
   // =========================================================================
@@ -1956,8 +1941,6 @@
   document.addEventListener('bitacora:tab', (e) => {
     if (e.detail === 'mapa') alMostrar();
     else ocultarTooltip();
-    // El formulario también usa los códigos del mapa (datalist de #numero_colmena).
-    if (e.detail === 'nueva' && !estado.cargado) cargarMapa();
   });
 
   document.addEventListener('bitacora:revisiones', (e) => indexarRevisiones(e.detail));
@@ -1967,5 +1950,4 @@
   actualizarBotonGuardar();
   if (B.revisiones) indexarRevisiones(B.revisiones);
   if (B.tab === 'mapa') alMostrar();
-  else if (B.tab === 'nueva') cargarMapa();
 })();

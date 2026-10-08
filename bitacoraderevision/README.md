@@ -1,8 +1,16 @@
 # Bitácora de revisión de colmenas
 
-Sitio web para registrar las revisiones (aperturas) de cada colmena y dibujar el
-mapa del apiario. Es la **Interfaz 5** del
-[Portal Apiario](https://eduabejas.github.io/apiario-portal/).
+Bitácora de revisiones (aperturas) de cada colmena y mapa del apiario, en dos
+interfaces del [Portal Apiario](https://eduabejas.github.io/apiario-portal/) que
+comparten la misma hoja de Google:
+
+- **Interfaz 3 — Registrar revisión** ([`interfaz3.html`](../interfaz3.html)):
+  pensada para el celular en el campo. Botones grandes con todos los campos de
+  la revisión, QR en las tapas, funciona sin señal (guarda en el teléfono y
+  envía sola cuando vuelve la conexión) y muestra la última revisión de cada
+  colmena.
+- **Interfaz 5 — Registros y mapa** (esta carpeta): lista de revisiones con
+  buscador y el mapa del apiario con el estado sanitario de cada colmena.
 
 - **Lectura pública:** cualquiera puede consultar las revisiones.
 - **Escritura protegida:** solo quien conoce el **código de acceso** puede registrar.
@@ -20,7 +28,9 @@ de la cabecera vuelve al inicio.
 ## Arquitectura
 
 ```
-Apicultor (navegador) -> GitHub Pages (sitio, HTTPS) -> Google Apps Script -> Hoja de Google
+Celular (Interfaz 3) ─┐
+                      ├─> GitHub Pages (sitio, HTTPS) -> Google Apps Script -> Hoja de Google
+Registros/mapa (I. 5) ┘
 ```
 
 - **Frontend:** HTML + CSS + JavaScript, servido por GitHub Pages.
@@ -29,18 +39,21 @@ Apicultor (navegador) -> GitHub Pages (sitio, HTTPS) -> Google Apps Script -> Ho
 
 ```
 bitacoraderevision/
-├── index.html            # Página principal (registros, nueva revisión y mapa)
+├── index.html            # Interfaz 5: registros y mapa
 ├── assets/
 │   ├── styles.css        # Estilos (claro/oscuro, mobile-first)
-│   ├── app.js            # Lógica: leer, filtrar y registrar revisiones; pestañas
+│   ├── app.js            # Lógica: leer y filtrar revisiones; pestañas
 │   ├── mapa.css          # Estilos del mapa del apiario
 │   ├── mapa.js           # Mapa del apiario (SVG, sin librerías)
-│   └── config.js         # URL de la app web de Google (pegás tu valor)
+│   └── config.js         # URL de la app web de Google (la usan la Interfaz 3 y la 5)
 └── apps-script/
     └── Codigo.gs         # Script para pegar en Google Apps Script (no se publica)
 ```
 
-Cada pestaña tiene su propio enlace: `…/#registros`, `…/#nueva` y `…/#mapa`.
+Cada pestaña tiene su propio enlace: `…/#registros` y `…/#mapa`. El botón
+**＋ Registrar revisión** (y cualquier enlace viejo a `…/#nueva`) lleva a la
+Interfaz 3. El formulario de la Interfaz 3 está en `../interfaz3.html` y
+`../assets/js/bitacora*.js` (ver el README del portal).
 
 ## Puesta en marcha (una sola vez, ~10 minutos)
 
@@ -78,7 +91,8 @@ Cada pestaña tiene su propio enlace: `…/#registros`, `…/#nueva` y `…/#map
      WEBAPP_URL: "https://script.google.com/macros/s/XXXXXXXX/exec"
    };
    ```
-2. Guardá el cambio (commit) en `main`.
+2. Guardá el cambio (commit) en `main`. La Interfaz 3 toma la URL de este
+   mismo archivo: no hay que pegarla en otro lado.
 
 ### 5. Publicación
 No hay que configurar nada más: cada push a `main` que toque
@@ -102,6 +116,12 @@ Así la URL sigue siendo la misma.
 > actualizar el script de Google para usar el mapa». Al implementarla, el script
 > agrega solo las columnas nuevas de la hoja `revisiones` (`varroa_pct`,
 > `acaricida`, al final) y crea la hoja `mapa`.
+>
+> **Envíos sin señal (Interfaz 3):** el celular manda cada revisión con su
+> propio id, y la versión actual del script descarta un reintento que ya había
+> llegado (por ejemplo, si se cortó la señal justo antes de la respuesta). Con
+> un script anterior todo funciona igual, pero en ese caso raro la revisión
+> podría quedar dos veces.
 
 ## Mapa del apiario
 La pestaña **Mapa** es un plano en vista superior (el Norte siempre arriba)
@@ -115,9 +135,10 @@ donde se dibuja la disposición del apiario. Empieza vacío.
   análisis de varroa. Si el último varroa es **≥ 3,0 %**, el valor aparece en
   rojo y la colmena tiene contorno y punto rojos.
 - Los datos sanitarios salen de las revisiones: el **N.º de colmena** de la
-  revisión tiene que coincidir con el **código** del mapa (el formulario lo
-  sugiere). La sección «Sanidad (varroa)» del formulario tiene el porcentaje de
-  varroa y el acaricida aplicado.
+  revisión tiene que coincidir con el **código** del mapa. La Interfaz 3 muestra
+  las colmenas del mapa como botones (con ✓ las ya revisadas hoy) y las sugiere
+  al escribir. Su sección «Sanidad (varroa)» tiene el porcentaje de varroa y el
+  acaricida aplicado.
 
 **Editar** (quien tenga el código de acceso):
 1. Tocá **Editar** y usá **+** para agregar colmenas, núcleos, pallets, muros,
@@ -130,7 +151,8 @@ donde se dibuja la disposición del apiario. Empieza vacío.
    notas y medidas. Se puede **Duplicar** o **Eliminar**. Teclado: flechas
    (5 cm), Shift + flechas (50 cm), Supr, Ctrl/Cmd + D, Ctrl/Cmd + Z y
    Ctrl/Cmd + Shift + Z.
-4. **Guardar** pide el código de acceso (una vez por sesión). Si otra persona
+4. **Guardar** pide el código de acceso (una vez por sesión). Queda anotado
+   como guardado por el usuario elegido en el portal. Si otra persona
    guardó antes, se puede **Sobrescribir** o **Descartar mis cambios**.
    Mientras se edita, el navegador guarda un borrador por si se cierra la
    página; al volver a Editar se ofrece recuperarlo.
@@ -148,6 +170,11 @@ guardó), así queda el historial completo del plano.
 - El código que se ingresa en el mapa queda solo en la memoria de la página
   (nunca en el almacenamiento del navegador ni en la URL). El borrador local del
   mapa no incluye el código.
+- En la Interfaz 3 el código queda en memoria mientras la página está abierta
+  (así las revisiones guardadas sin señal se envían solas). Solo se guarda en el
+  celular si se tilda **«Recordar en este celular»**; si el servidor lo rechaza,
+  se borra y se vuelve a pedir. Nunca viaja en la URL ni se guarda junto con las
+  revisiones pendientes.
 - Recomendación: usá un código largo. Para trazabilidad por persona (saber quién
   registró cada revisión) se puede agregar login más adelante.
 

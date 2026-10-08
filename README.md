@@ -7,14 +7,16 @@ enrutamiento y las reglas de diseño.
 
 - `index.html` — selección de usuario + interfaz
 - `interfaz1.html` — terreno 3D + vista satelital con simulador de crecida
-- `interfaz2.html` / `interfaz3.html` — placeholders (datos/precios y
-  bitácora de colmenas)
+- `interfaz2.html` — placeholder (datos y precios)
+- `interfaz3.html` — **Interfaz 3**: registrar revisiones desde el celular
+  (todos los campos de la bitácora, QR en las tapas, funciona sin señal);
+  escribe en la misma hoja que la Interfaz 5
 - `interfaz4.html` — contexto meteorológico de visitas: registrar visitas y
   ver los informes que el motor ([`interfaz4/`](interfaz4/README.md), Python
   en GitHub Actions) envía por correo 24 h y 12 h antes
-- `bitacoraderevision/` — **Interfaz 5**: bitácora de revisión de colmenas con registros,
-  nueva revisión (incluye varroa y acaricida) y el **mapa del apiario**; sitio
-  autocontenido con su propio backend en Google Sheets
+- `bitacoraderevision/` — **Interfaz 5**: registros de revisiones y el **mapa
+  del apiario**; trae el backend de la bitácora (Google Sheets + Apps Script,
+  compartido con la Interfaz 3; la URL va en `bitacoraderevision/assets/config.js`)
   (<https://eduabejas.github.io/apiario-portal/bitacoraderevision/>, ver
   [su README](bitacoraderevision/README.md))
 - `assets/` — CSS compilado, Alpine.js, datos y media
