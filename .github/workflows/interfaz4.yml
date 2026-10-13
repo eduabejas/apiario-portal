@@ -17,15 +17,7 @@ on:
         options:
           - ejecutar
           - probar-fuentes
-          - enviar-ahora
         default: ejecutar
-      visita_id:
-        description: 'Id de la visita (solo con enviar-ahora)'
-        required: false
-      hito:
-        description: 'Hito en horas (24 o 12, solo con enviar-ahora)'
-        required: false
-        default: '24'
 
 permissions:
   contents: write   # commitear state/, datos/ y publico/
@@ -95,15 +87,6 @@ jobs:
       - name: Probar fuentes
         if: github.event_name == 'workflow_dispatch' && inputs.accion == 'probar-fuentes'
         run: uv run interfaz4 -v probar-fuentes
-
-      - name: Enviar un informe ahora (ad hoc)
-        if: github.event_name == 'workflow_dispatch' && inputs.accion == 'enviar-ahora'
-        run: |
-          test -n "${VISITA}" || { echo "::error::falta 'visita_id'"; exit 1; }
-          uv run interfaz4 -v informe "${VISITA}" --hito "${HITO}" --enviar
-        env:
-          VISITA: ${{ inputs.visita_id }}
-          HITO: ${{ inputs.hito }}
 
       - name: Guardar caché de MET Norway
         if: always() && hashFiles('interfaz4/state/cache_metno.json') != ''
