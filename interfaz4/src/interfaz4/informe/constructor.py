@@ -7,6 +7,7 @@ de fuentes y licencias. No califica, no recomienda, no promedia fuentes.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -16,6 +17,7 @@ from interfaz4 import tiempo
 from interfaz4.informe.recoleccion import DatosInforme
 from interfaz4.modelos import Alerta, PuntoHorario, SerieFuente
 
+log = logging.getLogger(__name__)
 SD = "s/d"
 ETIQUETAS = {
     "smn_wrf": "SMN WRF",
@@ -50,6 +52,23 @@ def fmt_num(v: float | None, decimales: int) -> str:
     if texto.lstrip("-").strip("0,.") == "":
         texto = texto.lstrip("-")  # evita "-0,0"
     return texto.replace(".", ",")
+
+
+def fmt_precip(v: float | None) -> str:
+    """Precipitación en mm, con el umbral de detección del WRF-SMN explícito.
+
+    `None` ≠ 0: el modelo no reportó dato, no "no llovió".
+    Un valor positivo menor a 0,1 mm (debajo de la resolución mostrada) se
+    marca como `<0,1` para no confundir con un cero exacto. Es conteo, no
+    interpretación: la escala es la del modelo.
+    """
+    if v is None:
+        return SD
+    if v == 0:
+        return "0,0"
+    if 0 < v < 0.1:
+        return "<0,1"
+    return fmt_num(v, 1)
 
 
 def fmt_dif(antes: float, despues: float, decimales: int) -> str:
@@ -117,8 +136,10 @@ def resumir(puntos: list[PuntoHorario]) -> Resumen:
 def fmt_precip_total(r: Resumen, unidad: str = "") -> str:
     if r.precip_total is None:
         return SD
-    texto = fmt_num(r.precip_total, 1) + unidad
-    return texto if r.precip_completa else f"{texto} ({r.precip_horas} de {r.horas} h)"
+    texto = fmt_precip(r.precip_total) + unidad
+    if r.precip_completa:
+        return texto
+    return f"{texto} ({r.precip_horas}/{r.horas} h)"
 
 
 def filas_resumen(resumenes: list[Resumen]) -> list[tuple[str, list[str]]]:
@@ -195,6 +216,15 @@ class VistaDetalle:
 
 
 @dataclass
+class VistaMapa:
+    """Bloque opcional con el mapa de lluvia. Fuera de banda del texto plano."""
+    cid: str
+    titulo: str
+    texto_alt: str  # para el bloque de texto plano del correo
+    png: bytes  # no se expone en texto; se adjunta inline al correo
+
+
+@dataclass
 class VistaInforme:
     asunto: str
     titulo: str
@@ -217,6 +247,7 @@ class VistaInforme:
     atribuciones: list[str]
     leyenda: str = LEYENDA
     avisos: list[str] = field(default_factory=list)
+    mapa: VistaMapa | None = None
 
     @property
     def resumen_texto(self) -> str:
@@ -234,7 +265,7 @@ def _fila_detalle(p: PuntoHorario) -> list[str]:
         fmt_num(p.viento_kmh, 0),
         p.viento_dir_cardinal or SD,
         fmt_num(p.rafaga_kmh, 0),
-        fmt_num(p.precip_mm, 1),
+        fmt_precip(p.precip_mm),
         fmt_num(p.prob_precip_pct, 0),
     ]
 
@@ -376,7 +407,45 @@ def construir_vista(datos: DatosInforme, previo: DatosInforme | None = None, com
         pie_fuentes=pie,
         atribuciones=atribuciones,
         avisos=avisos,
+        mapa=_construir_mapa(datos),
     )
+
+
+def _construir_mapa(datos: DatosInforme) -> VistaMapa | None:
+    """Renderiza el PNG del mapa si hay caja WRF. Jamás bloquea el informe."""
+    caja = getattr(datos, "mapa_pp_caja", None)
+    if not caja:
+        return None
+    try:
+        from email.utils import make_msgid
+        from pathlib import Path
+
+        from interfaz4.informe.mapa import cargar_costa, render_mapa
+
+        pp = caja["pp"]
+        base = getattr(datos, "base", None)
+        costa_path = (Path(base) / "assets/costa_rdp.geojson") if base else None
+        costa = cargar_costa(costa_path) if costa_path and costa_path.exists() else []
+        titulo = _titulo_mapa(datos, caja)
+        png = render_mapa(caja["lat2d"], caja["lon2d"], pp, datos.apiario.lat, datos.apiario.lon, costa, titulo)
+    except Exception as e:
+        log.warning("Mapa no disponible: %s", e)
+        return None
+    cid = make_msgid(domain="interfaz4")[1:-1]  # sin los <>
+    return VistaMapa(
+        cid=cid,
+        titulo=titulo,
+        texto_alt="Mapa de lluvia disponible en la versión HTML del correo.",
+        png=png,
+    )
+
+
+def _titulo_mapa(datos: DatosInforme, caja: dict) -> str:
+    init = caja.get("init_utc")
+    desde = tiempo.fmt_hora(datos.visita.desde)
+    hasta = tiempo.fmt_hora(datos.visita.hasta)
+    ciclo = tiempo.fmt_utc_ciclo(init) if init else "s/d"
+    return f"Lluvia prevista {desde}–{hasta} · WRF-SMN ciclo {ciclo}"
 
 
 def fmt_coord(v: float) -> str:
@@ -392,6 +461,8 @@ class InformeRenderizado:
     html: str
     texto: str
     chat: list[str]
+    # (cid, png) para adjuntar inline en el correo (Gmail bloquea data: URI).
+    imagenes_inline: list[tuple[str, bytes]] = field(default_factory=list)
 
 
 def _entorno() -> Environment:
@@ -445,7 +516,8 @@ def renderizar(vista: VistaInforme) -> InformeRenderizado:
     html = env.get_template("correo.html.j2").render(**contexto)
     texto = env.get_template("correo.txt.j2").render(**contexto)
     chat = env.get_template("chat.txt.j2").render(**contexto)
-    return InformeRenderizado(asunto=vista.asunto, html=html, texto=texto, chat=dividir_mensaje(chat))
+    imagenes = [(vista.mapa.cid, vista.mapa.png)] if vista.mapa else []
+    return InformeRenderizado(asunto=vista.asunto, html=html, texto=texto, chat=dividir_mensaje(chat), imagenes_inline=imagenes)
 
 
 def generar(datos: DatosInforme, previo: DatosInforme | None = None, comparar_24_12: bool = True) -> InformeRenderizado:

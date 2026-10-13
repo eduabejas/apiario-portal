@@ -36,6 +36,9 @@ class DatosInforme(BaseModel):
     series_previas: list[SerieFuente] = Field(default_factory=list)
     alertas: ResultadoAlertas | None = None  # None = fuente de alertas deshabilitada
     fuentes_deshabilitadas: list[str] = Field(default_factory=list)
+    # Datos del mapa: la caja de PP para render; se descarta del snapshot JSON.
+    mapa_pp_caja: object | None = Field(default=None, exclude=True)
+    base: object | None = Field(default=None, exclude=True)  # para localizar assets/
 
 
 class Recolector:
@@ -105,6 +108,7 @@ def recolectar(config: Config, visita: Visita, hito: int, ahora: datetime, recol
     siguientes = [h for h in config.ajustes.hitos_horas if h < hito]
     proximo = tiempo.sumar_horas(visita.inicio, -max(siguientes)) if siguientes else None
     deshabilitadas = [n for n in ORDEN_FUENTES if not config.ajustes.fuente_habilitada(n)]
+    mapa_caja = _mapa_pp(config, recolector, apiario, visita, inicio_filas, fin_filas, tramo_desde, tramo_hasta)
     return DatosInforme(
         visita=visita,
         apiario=apiario,
@@ -117,4 +121,36 @@ def recolectar(config: Config, visita: Visita, hito: int, ahora: datetime, recol
         series_previas=series_previas,
         alertas=recolector.alertas(apiario, visita.inicio, visita.fin),
         fuentes_deshabilitadas=deshabilitadas,
+        mapa_pp_caja=mapa_caja,
+        base=config.base,
     )
+
+
+def _mapa_pp(
+    config: Config,
+    recolector: Recolector,
+    apiario: Apiario,
+    visita: Visita,
+    inicio_filas: datetime,
+    fin_filas: datetime,
+    tramo_desde: datetime | None,
+    tramo_hasta: datetime | None,
+):
+    """Caja de PP del WRF para el mapa, solo si está habilitada y hay WRF."""
+    mapa = getattr(config.ajustes, "mapa", None)
+    if mapa is None or not mapa.habilitado:
+        return None
+    wrf = recolector.fuentes.get("smn_wrf")
+    if wrf is None or not hasattr(wrf, "caja_lluvia"):
+        return None
+    if mapa.modo == "tramo_previo":
+        if not tramo_desde or not tramo_hasta:
+            return None
+        inicio, fin = tramo_desde, tramo_hasta
+    else:
+        inicio, fin = inicio_filas, fin_filas
+    try:
+        return wrf.caja_lluvia(apiario, inicio, fin, mapa.radio_celdas)
+    except Exception as e:
+        log.warning("mapa WRF: no se pudo obtener la caja: %s", e)
+        return None

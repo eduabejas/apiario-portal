@@ -44,6 +44,13 @@ def valor(v: object) -> float | None:
     return f
 
 
+def lluvia(v: object) -> float | None:
+    """Precipitación saneada: None si no hay dato; negativos (ruido numérico
+    del WRF, suele ser −1e−8) → 0,0. `None` ≠ `0,0`."""
+    f = valor(v)
+    return None if f is None else max(0.0, f)
+
+
 def ms_a_kmh(v: object) -> float | None:
     f = valor(v)
     return None if f is None else f * 3.6
@@ -76,14 +83,17 @@ def armar_puntos(
 
     `instantaneos[t]` admite: temp_c, hr_pct, viento_kmh, viento_dir_grados.
     `acumulados[t]` admite: precip_mm, rafaga_kmh, prob_precip_pct.
-    Las claves son datetimes con zona (se comparan por instante, sin importar
-    si vienen en UTC o en hora local). Lo que falta queda en None (s/d).
+    Las claves pueden venir en UTC o en hora local: se normalizan con
+    `clave_hora()` para asegurar que un valor nunca quede huérfano por una
+    zona distinta. Lo que falta queda en None (s/d), nunca 0.
     """
+    inst_h = {tiempo.clave_hora(k): v for k, v in instantaneos.items()}
+    acu_h = {tiempo.clave_hora(k): v for k, v in acumulados.items()}
     puntos: list[PuntoHorario] = []
     for fila in filas:
-        h = tiempo.a_local(fila)
-        inst = instantaneos.get(h, {})
-        acu = acumulados.get(hora_de_fuente(h, convencion), {})
+        h = tiempo.clave_hora(fila)
+        inst = inst_h.get(h, {})
+        acu = acu_h.get(tiempo.clave_hora(hora_de_fuente(h, convencion)), {})
         direccion = valor(inst.get("viento_dir_grados"))
         puntos.append(
             PuntoHorario(
@@ -94,7 +104,7 @@ def armar_puntos(
                 viento_dir_grados=_redondear(direccion, 1),
                 viento_dir_cardinal=grados_a_cardinal(direccion),
                 rafaga_kmh=_redondear(valor(acu.get("rafaga_kmh")), 2),
-                precip_mm=_redondear(valor(acu.get("precip_mm")), 3),
+                precip_mm=_redondear(lluvia(acu.get("precip_mm")), 3),
                 prob_precip_pct=_redondear(valor(acu.get("prob_precip_pct")), 1),
             )
         )

@@ -24,6 +24,11 @@
 {{ v.resumen_texto }}
 ```
 {{ v.notas_resumen | join(" ") }}
+{% if v.mapa %}
+
+*Mapa de lluvia*
+Mapa de lluvia: ver correo.
+{% endif %}
 {% if v.tramo_titulo %}
 
 *{{ v.tramo_titulo }}*

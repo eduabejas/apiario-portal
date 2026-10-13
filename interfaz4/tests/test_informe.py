@@ -134,7 +134,9 @@ def test_tramo_previo_suma_por_fuente(datos_12h):
     assert datos_12h.tramo_hasta == local("2026-10-04T09:00")
     assert all(len(s.puntos) == 12 for s in datos_12h.series_previas)
     vista = construir_vista(datos_12h)
-    assert vista.tramo_partes == ["SMN WRF 0,0 mm", "MET Norway 0,0 mm"]
+    # El fixture tiene PP microscópica (0,015 y 0,002 mm en el WRF): con la
+    # resolución de 0,1 mm se muestra como "<0,1", no se oculta como "0,0".
+    assert vista.tramo_partes == ["SMN WRF <0,1 mm", "MET Norway 0,0 mm"]
 
 
 def test_sin_tramo_si_el_envio_es_en_la_hora_de_inicio(config, tmp_path):

@@ -31,6 +31,12 @@ RESUMEN DE LA VENTANA
 {% for n in v.notas_resumen %}
 {{ n }}
 {% endfor %}
+{% if v.mapa %}
+
+MAPA DE LLUVIA
+{{ v.mapa.titulo }}
+{{ v.mapa.texto_alt }}
+{% endif %}
 {% if v.tramo_titulo %}
 
 {{ v.tramo_titulo }}

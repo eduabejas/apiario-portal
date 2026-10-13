@@ -1,10 +1,12 @@
-"""Cliente HTTP con reintentos, backoff y timeouts (sin evadir protecciones)."""
+"""Cliente HTTP con reintentos, backoff, timeouts, lista blanca de hosts y
+tope de tamaño (sin evadir protecciones)."""
 
 from __future__ import annotations
 
 import logging
 import time
 from collections.abc import Callable, Mapping
+from urllib.parse import urlparse
 
 import httpx
 
@@ -14,6 +16,17 @@ from interfaz4.fuentes.base import ErrorFuente
 log = logging.getLogger(__name__)
 
 MARCAS_CHALLENGE = ("cf-chl", "just a moment", "challenge-platform", "attention required", "captcha")
+
+# Las fuentes conocidas: cualquier otro host se rechaza aunque sea HTTPS.
+HOSTS_PERMITIDOS = frozenset({
+    "api.met.no",
+    "ssl.smn.gob.ar",
+    "api.open-meteo.com",
+    "smn-ar-wrf.s3.amazonaws.com",
+    "smn-ar-wrf.s3-us-west-2.amazonaws.com",
+})
+TOPE_RESPUESTA_BYTES = 5 * 1024 * 1024  # 5 MB
+CONTENIDOS_ESPERADOS = ("application/json", "application/xml", "application/rss+xml", "text/xml")
 
 
 def parece_challenge(resp: httpx.Response) -> bool:
@@ -51,6 +64,9 @@ class ClienteHTTP:
         params: Mapping[str, str] | None = None,
         headers: Mapping[str, str] | None = None,
     ) -> httpx.Response:
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or parsed.hostname not in HOSTS_PERMITIDOS:
+            raise ErrorFuente(f"host no permitido: {parsed.scheme}://{parsed.hostname}")
         intentos = self.reintentos.http_intentos
         esperas = self.reintentos.http_backoff_seg or [0.0]
         ultimo_error = "sin intentos"
@@ -60,6 +76,15 @@ class ClienteHTTP:
             except httpx.HTTPError as e:
                 ultimo_error = f"{type(e).__name__}: {e}"
             else:
+                # Redirecciones fuera de la lista blanca o cuerpo gigante → rechazo.
+                destino = urlparse(str(resp.url))
+                if destino.hostname not in HOSTS_PERMITIDOS:
+                    raise ErrorFuente(f"redirección fuera de la lista blanca: {destino.hostname}")
+                largo = resp.headers.get("content-length")
+                if largo and largo.isdigit() and int(largo) > TOPE_RESPUESTA_BYTES:
+                    raise ErrorFuente(f"respuesta demasiado grande: {int(largo)/1024/1024:.1f} MB > 5 MB")
+                if len(resp.content) > TOPE_RESPUESTA_BYTES:
+                    raise ErrorFuente(f"respuesta demasiado grande: {len(resp.content)/1024/1024:.1f} MB > 5 MB")
                 if resp.status_code < 500 or parece_challenge(resp):
                     return resp
                 ultimo_error = f"HTTP {resp.status_code}"

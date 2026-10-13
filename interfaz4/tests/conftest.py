@@ -22,9 +22,20 @@ def local(texto: str) -> datetime:
 
 @pytest.fixture
 def proyecto(tmp_path: Path) -> Path:
-    """Copia config/ del repo y deja datos/ y state/ vacíos en un directorio temporal."""
+    """Copia config/ del repo y deja datos/ y state/ vacíos en un directorio temporal.
+
+    El mapa (Parte B) queda apagado por defecto: cada test que quiera probarlo
+    reescribe su `config/ajustes.yaml` con `mapa.habilitado: true`.
+    """
     base = tmp_path / "interfaz4"
     shutil.copytree(RAIZ / "config", base / "config")
+    yaml_path = base / "config" / "ajustes.yaml"
+    yaml_path.write_text(
+        yaml_path.read_text(encoding="utf-8").replace(
+            "mapa:\n  habilitado: true", "mapa:\n  habilitado: false"
+        ),
+        encoding="utf-8",
+    )
     (base / "datos").mkdir(parents=True)
     (base / "datos" / "visitas.yaml").write_text("visitas: []\n", encoding="utf-8")
     (base / "state" / "snapshots").mkdir(parents=True)

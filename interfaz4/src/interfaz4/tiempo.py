@@ -54,6 +54,18 @@ def piso_hora(dt: datetime) -> datetime:
     return dt.replace(minute=0, second=0, microsecond=0)
 
 
+def clave_hora(dt: datetime) -> datetime:
+    """Clave canónica de hora local para indexar valores por fila H.
+
+    Prohíbe datetimes naive (que mezclan UTC/local sin aviso) y devuelve el
+    inicio de la hora en zona Argentina. Si todas las fuentes usan la misma
+    clave, un valor nunca queda huérfano por una zona distinta.
+    """
+    if dt.tzinfo is None:
+        raise ValueError(f"datetime naive prohibido en clave_hora: {dt!r}")
+    return dt.astimezone(ZONA_AR).replace(minute=0, second=0, microsecond=0)
+
+
 def techo_hora(dt: datetime) -> datetime:
     piso = piso_hora(dt)
     return piso if piso == dt else sumar_horas(piso, 1)

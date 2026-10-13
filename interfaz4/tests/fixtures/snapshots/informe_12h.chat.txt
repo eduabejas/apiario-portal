@@ -25,7 +25,7 @@ Prob. precipitación máx (%)          s/d          s/d
 s/d = sin dato en la fuente. Ráfagas y probabilidad de precipitación: SMN WRF y MET Norway no publican esos datos para este punto.
 
 *ANTES DE LA VISITA (21:00 del sábado → 09:00 del domingo)*
-Precipitación total prevista: SMN WRF 0,0 mm · MET Norway 0,0 mm
+Precipitación total prevista: SMN WRF <0,1 mm · MET Norway 0,0 mm
 
 *DETALLE HORARIO — SMN WRF (ciclo 03/10 12 UTC)*
 ```

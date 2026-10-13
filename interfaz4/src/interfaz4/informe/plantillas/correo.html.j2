@@ -46,6 +46,12 @@
 {% for n in v.notas_resumen %}
 <p style="{{ nota }}">{{ n }}</p>
 {% endfor %}
+{% if v.mapa %}
+
+<h2 style="{{ h2 }}">MAPA DE LLUVIA</h2>
+<p style="margin:4px 0 6px;font-size:12px;color:#555;">{{ v.mapa.titulo }}</p>
+<p style="margin:0;"><img src="cid:{{ v.mapa.cid }}" width="340" alt="Mapa de lluvia prevista alrededor del apiario" style="display:block;max-width:100%;height:auto;border:1px solid #ddd;"></p>
+{% endif %}
 {% if v.tramo_titulo %}
 
 <h2 style="{{ h2 }}">{{ v.tramo_titulo }}</h2>
