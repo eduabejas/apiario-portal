@@ -28,3 +28,15 @@ visitas:
     / `s/d`).
   origen: 'issue #13'
   registrada: 2026-10-12T23:10-03:00
+- id: 2026-10-13-produccion_miel-01
+  apiario: produccion_miel
+  fecha: '2026-10-13'
+  desde: '13:00'
+  hasta: '14:00'
+  responsable: Eduardo Mendoza
+  canales:
+  - correo
+  estado: planificada
+  notas: Purbea
+  origen: 'issue #17'
+  registrada: 2026-10-12T23:21-03:00
