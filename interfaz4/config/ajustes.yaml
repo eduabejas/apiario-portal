@@ -14,6 +14,11 @@ canales:
 informe:
   incluir_tramo_previo: true   # lluvia acumulada desde el envío hasta el inicio de la visita
   incluir_comparacion_24_12: true
+mapa:
+  habilitado: true             # imagen de la lluvia WRF alrededor del punto (±radio_celdas)
+  radio_celdas: 25             # 4 km/celda → ±100 km ≈ 200×200 km
+  modo: ventana                # ventana | tramo_previo
+  omitir_si_vacio: false       # true: si el máximo de la caja < 0,1 mm, no se incluye imagen
 reintentos:
   http_intentos: 3
   http_backoff_seg: [2, 5, 15]

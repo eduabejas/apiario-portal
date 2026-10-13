@@ -90,6 +90,21 @@ class AjustesInforme(BaseModel):
     incluir_comparacion_24_12: bool = True
 
 
+class AjustesMapa(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    habilitado: bool = False
+    radio_celdas: int = Field(default=25, ge=1, le=200)
+    modo: str = Field(default="ventana")  # ventana | tramo_previo
+    omitir_si_vacio: bool = False
+
+    @field_validator("modo")
+    @classmethod
+    def _modo(cls, v: str) -> str:
+        if v not in ("ventana", "tramo_previo"):
+            raise ValueError("mapa.modo debe ser 'ventana' o 'tramo_previo'")
+        return v
+
+
 class AjustesReintentos(BaseModel):
     model_config = ConfigDict(extra="forbid")
     http_intentos: int = Field(default=3, ge=1, le=10)
@@ -119,6 +134,7 @@ class Ajustes(BaseModel):
     fuentes: dict[str, AjustesFuente] = Field(default_factory=_fuentes_por_defecto)
     canales: dict[str, AjustesCanal] = Field(default_factory=_canales_por_defecto)
     informe: AjustesInforme = Field(default_factory=AjustesInforme)
+    mapa: AjustesMapa = Field(default_factory=AjustesMapa)
     reintentos: AjustesReintentos = Field(default_factory=AjustesReintentos)
 
     @field_validator("hitos_horas")

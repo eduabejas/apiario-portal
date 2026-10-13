@@ -27,8 +27,17 @@ def remitente(secretos: Secretos) -> str:
 
 
 def armar_mensaje(
-    asunto: str, html: str, texto: str, de: str, para: list[str], ahora: datetime | None = None
+    asunto: str,
+    html: str,
+    texto: str,
+    de: str,
+    para: list[str],
+    ahora: datetime | None = None,
+    imagenes: list[tuple[str, bytes]] | None = None,
 ) -> EmailMessage:
+    """Mensaje multipart. Si llegan imágenes inline, se adjuntan como related
+    a la parte HTML con su `Content-ID`, para que Gmail las muestre (los
+    `data:` URI están bloqueados en Gmail)."""
     msg = EmailMessage()
     msg["Subject"] = asunto
     msg["From"] = de
@@ -38,6 +47,10 @@ def armar_mensaje(
     msg["Message-ID"] = make_msgid(domain=dominio)
     msg.set_content(texto)
     msg.add_alternative(html, subtype="html")
+    if imagenes:
+        parte_html = msg.get_payload()[1]
+        for cid, png in imagenes:
+            parte_html.add_related(png, "image", "png", cid=f"<{cid}>")
     return msg
 
 
@@ -65,9 +78,16 @@ class EnviadorCorreo:
             except (ValueError, IndexError) as e:
                 raise ErrorEnvio(f"destinatario inválido: {d!r}") from e
 
-    def enviar(self, asunto: str, html: str, texto: str, destinatarios: list[str]) -> None:
+    def enviar(
+        self,
+        asunto: str,
+        html: str,
+        texto: str,
+        destinatarios: list[str],
+        imagenes: list[tuple[str, bytes]] | None = None,
+    ) -> None:
         self.verificar(destinatarios)
-        msg = armar_mensaje(asunto, html, texto, remitente(self.s), destinatarios)
+        msg = armar_mensaje(asunto, html, texto, remitente(self.s), destinatarios, imagenes=imagenes)
         contexto = ssl.create_default_context()
         try:
             if self.s.smtp_seguridad == "ssl":

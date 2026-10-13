@@ -1,6 +1,6 @@
 [project]
 name = "interfaz4"
-version = "0.1.0"
+version = "1.1.0"
 description = "Interfaz 4: contexto meteorológico para visitas a apiarios (organizar, no interpretar)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -15,6 +15,7 @@ dependencies = [
     "shapely>=2.0",
     "typer>=0.12",
     "defusedxml>=0.7",
+    "matplotlib>=3.8",
 ]
 
 [project.scripts]

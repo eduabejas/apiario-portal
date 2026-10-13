@@ -142,6 +142,25 @@ class RepositorioWRF:
         with self._abrir(ruta) as f, h5py.File(f, "r") as h:
             return np.asarray(h["lat"][...]), np.asarray(h["lon"][...])
 
+    def leer_caja_pp(self, ruta: str, y0: int, y1: int, x0: int, x1: int) -> np.ndarray:
+        """`PP` del archivo recortada a la caja [y0:y1, x0:x1] como float32.
+
+        Lee solo esa región sobre el archivo abierto por rangos (sin bajar
+        la grilla entera). Valores `_FillValue` → NaN; negativos → 0.
+        """
+        import h5py
+
+        with self._abrir(ruta) as f, h5py.File(f, "r") as h:
+            pp = h["PP"]
+            caja = pp[0, y0:y1, x0:x1] if pp.ndim == 3 else pp[y0:y1, x0:x1]
+            arr = np.asarray(caja, dtype="f4")
+            relleno = pp.attrs.get("_FillValue")
+            if relleno is not None:
+                arr = np.where(np.isclose(arr, float(np.asarray(relleno).ravel()[0])), np.nan, arr)
+            arr = np.where(np.abs(arr) >= 1e19, np.nan, arr)
+            arr = np.where(arr < 0, 0.0, arr)
+        return arr
+
 
 class CacheGrilla:
     """Índice (iy, ix) por coordenada, con la forma de la grilla como firma."""
@@ -273,6 +292,77 @@ class FuenteSMNWRF(Fuente):
             for v in faltan:
                 self._memo[(ruta, iy, ix, v)] = lectura.valores.get(v)
         return {v: self._memo[(ruta, iy, ix, v)] for v in variables}
+
+    def caja_lluvia(
+        self, apiario: Apiario, inicio: datetime, fin: datetime, radio: int
+    ) -> dict | None:
+        """Suma de PP (mm) sobre una caja de ±radio celdas, para el mapa.
+
+        Reutiliza el ciclo elegido en `obtener()`; si todavía no se usó,
+        elige uno aquí. Las filas sin dato suman 0. `None` si no hay
+        archivos o la caja no cabe en la grilla.
+        """
+        import h5py  # noqa: F401 - garantiza el import temprano
+
+        filas = tiempo.rango_horas(inicio, fin)
+        if not filas:
+            return None
+        try:
+            eleccion = self.elegir_ciclo(
+                tiempo.a_utc(self.reloj()),
+                tiempo.a_utc(tiempo.sumar_horas(filas[-1], 1)),
+            )
+        except Exception as e:
+            log.warning("mapa WRF: no se pudo elegir ciclo: %s", e)
+            return None
+        if eleccion is None:
+            return None
+        init, disponibles = eleccion
+        plazos = []
+        for h in filas:
+            t = tiempo.a_utc(tiempo.sumar_horas(h, 1))
+            p = (t - init).total_seconds() / 3600
+            if p.is_integer() and int(p) in disponibles and 0 <= p <= PLAZO_MAX:
+                plazos.append(int(p))
+        if not plazos:
+            return None
+        try:
+            iy, ix = self.indice(apiario, self.repo.ruta(init, plazos[0]))
+        except Exception as e:
+            log.warning("mapa WRF: no se pudo ubicar el punto de grilla: %s", e)
+            return None
+        y0, y1 = max(0, iy - radio), iy + radio + 1
+        x0, x1 = max(0, ix - radio), ix + radio + 1
+        acumulado: np.ndarray | None = None
+        lat2d = lon2d = None
+        for plazo in plazos:
+            ruta = self.repo.ruta(init, plazo)
+            try:
+                caja = self.repo.leer_caja_pp(ruta, y0, y1, x0, x1)
+            except Exception as e:
+                log.warning("mapa WRF: falló plazo %03d: %s", plazo, e)
+                continue
+            if acumulado is None:
+                acumulado = np.nan_to_num(caja, nan=0.0)
+                try:
+                    lat, lon = self.repo.leer_latlon(ruta)
+                    lat2d, lon2d = lat[y0:y1, x0:x1], lon[y0:y1, x0:x1]
+                except Exception as e:
+                    log.warning("mapa WRF: falló lat/lon: %s", e)
+                    return None
+            else:
+                acumulado = acumulado + np.nan_to_num(caja, nan=0.0)
+        if acumulado is None or lat2d is None or lon2d is None:
+            return None
+        return {
+            "lat2d": lat2d,
+            "lon2d": lon2d,
+            "pp": acumulado,
+            "iy_centro": iy - y0,
+            "ix_centro": ix - x0,
+            "init_utc": init,
+            "horas": len(plazos),
+        }
 
     def obtener(
         self, apiario: Apiario, inicio: datetime, fin: datetime, variables: Variables = "todas"

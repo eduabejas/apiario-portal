@@ -123,6 +123,7 @@ class Motor:
                         render.html,
                         render.texto,
                         self.config.destinatarios(visita.correo, visita.responsable),
+                        imagenes=render.imagenes_inline,
                     )
                 elif canal == "google_chat":
                     self.chat.enviar(render.chat, hilo=f"{visita.id}-{hito}")

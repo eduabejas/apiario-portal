@@ -22,10 +22,10 @@ class CorreoFalso:
         self.enviados = []
         self.fallar = fallar
 
-    def enviar(self, asunto, html, texto, destinatarios):
+    def enviar(self, asunto, html, texto, destinatarios, imagenes=None):
         if self.fallar:
             raise ErrorEnvio("correo sin configurar: faltan los secretos SMTP_USUARIO y/o SMTP_CLAVE_APP")
-        self.enviados.append((asunto, destinatarios, texto))
+        self.enviados.append((asunto, destinatarios, texto, list(imagenes or [])))
 
 
 class ChatFalso:
@@ -67,7 +67,7 @@ def test_ciclo_24_12_con_idempotencia(config, tmp_path):
     r = m.ejecutar(local("2026-10-03T09:17"))
     assert [(a.hito, a.estado) for a in r.acciones] == [(24, "enviado")]
     assert r.proximo == local("2026-10-03T21:00")
-    asunto, destinatarios, texto = correo.enviados[-1]
+    asunto, destinatarios, texto, _ = correo.enviados[-1]
     assert asunto == "🐝 Visita Apiario de producción melífera 04/10 09:00–13:00 · informe 24 h"
     assert destinatarios == ["apicultor@example.com"]
     assert "Próximo informe: ~21:00 del sábado" in texto

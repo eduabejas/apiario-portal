@@ -140,6 +140,8 @@ class Visita(BaseModel):
 class PuntoHorario(BaseModel):
     """Fila H = intervalo [H, H+1h) en hora local."""
 
+    model_config = ConfigDict(extra="forbid")
+
     hora_local: datetime
     temp_c: float | None = None  # instantáneo en H
     hr_pct: float | None = None  # instantáneo en H
