@@ -19,6 +19,20 @@
       "snapshot": "state/snapshots/2026-10-08-produccion_miel-01_12.json"
     }
   },
+  "2026-10-13-produccion_miel-01": {
+    "24": {
+      "estado": "enviado",
+      "momento": "2026-10-12T23:21:59-03:00",
+      "canales": {
+        "correo": "ok",
+        "google_chat": "deshabilitado"
+      },
+      "snapshot": "state/snapshots/2026-10-13-produccion_miel-01_24.json"
+    },
+    "12": {
+      "estado": "pendiente"
+    }
+  },
   "2026-10-14-produccion_miel-01": {
     "24": {
       "estado": "pendiente"

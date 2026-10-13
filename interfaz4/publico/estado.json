@@ -85,6 +85,47 @@
    ]
   },
   {
+   "id": "2026-10-13-produccion_miel-01",
+   "apiario": "produccion_miel",
+   "fecha": "2026-10-13",
+   "desde": "13:00",
+   "hasta": "14:00",
+   "inicio": "2026-10-13T13:00-03:00",
+   "fin": "2026-10-13T14:00-03:00",
+   "responsable": "Eduardo Mendoza",
+   "notas": "Purbea",
+   "estado": "planificada",
+   "origen": "issue #17",
+   "canales": [
+    "correo"
+   ],
+   "hitos": [
+    {
+     "horas": 24,
+     "programado": "2026-10-12T13:00-03:00",
+     "estado": "enviado",
+     "momento": "2026-10-12T23:21-03:00",
+     "canales": {
+      "correo": "ok",
+      "google_chat": "deshabilitado"
+     },
+     "errores": null,
+     "detalle": null,
+     "informe": "informes/2026-10-13-produccion_miel-01_24.html"
+    },
+    {
+     "horas": 12,
+     "programado": "2026-10-13T01:00-03:00",
+     "estado": "pendiente",
+     "momento": null,
+     "canales": {},
+     "errores": null,
+     "detalle": null,
+     "informe": null
+    }
+   ]
+  },
+  {
    "id": "2026-10-14-produccion_miel-01",
    "apiario": "produccion_miel",
    "fecha": "2026-10-14",
@@ -103,21 +144,21 @@
     {
      "horas": 24,
      "programado": "2026-10-13T23:10-03:00",
-     "estado": "omitido",
-     "momento": "2026-10-12T23:12-03:00",
+     "estado": "pendiente",
+     "momento": null,
      "canales": {},
      "errores": null,
-     "detalle": "enviado a mano con interfaz4 informe --enviar (prueba ad hoc del usuario)",
+     "detalle": null,
      "informe": null
     },
     {
      "horas": 12,
      "programado": "2026-10-14T11:10-03:00",
-     "estado": "omitido",
-     "momento": "2026-10-12T23:12-03:00",
+     "estado": "pendiente",
+     "momento": null,
      "canales": {},
      "errores": null,
-     "detalle": "cancelado a pedido del usuario (prueba de la Interfaz 4 v1.1)",
+     "detalle": null,
      "informe": null
     }
    ]
