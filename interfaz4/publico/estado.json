@@ -83,6 +83,44 @@
      "informe": "informes/2026-10-08-produccion_miel-01_12.html"
     }
    ]
+  },
+  {
+   "id": "2026-10-14-produccion_miel-01",
+   "apiario": "produccion_miel",
+   "fecha": "2026-10-14",
+   "desde": "23:10",
+   "hasta": "23:40",
+   "inicio": "2026-10-14T23:10-03:00",
+   "fin": "2026-10-14T23:40-03:00",
+   "responsable": "Eduardo Mendoza",
+   "notas": "Apertura de colmenas (prueba de la Interfaz 4 v1.1 — mapa de lluvia y precipitación con `<0,1` / `s/d`).",
+   "estado": "planificada",
+   "origen": "issue #13",
+   "canales": [
+    "correo"
+   ],
+   "hitos": [
+    {
+     "horas": 24,
+     "programado": "2026-10-13T23:10-03:00",
+     "estado": "pendiente",
+     "momento": null,
+     "canales": {},
+     "errores": null,
+     "detalle": null,
+     "informe": null
+    },
+    {
+     "horas": 12,
+     "programado": "2026-10-14T11:10-03:00",
+     "estado": "pendiente",
+     "momento": null,
+     "canales": {},
+     "errores": null,
+     "detalle": null,
+     "informe": null
+    }
+   ]
   }
  ]
 }
